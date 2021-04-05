@@ -1,6 +1,6 @@
 
 mode=train_and_eval
-depth=50
+resnet_depth=50
 
 base_learning_rate=0.1
 use_tpu=True
@@ -29,7 +29,7 @@ python3 main.py \
   --data_dir=$DATA_DIR\
   --model_dir=$MODEL_DIR\
   --export_dir=$EXPORT_DIR\
-  --depth=$depth\
+  --resnet_depth=$resnet_depth\
   --mode=$mode\
   --base_learning_rate=$base_learning_rate\
   --train_steps=$train_steps\
