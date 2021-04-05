@@ -15,6 +15,7 @@ label_smoothing=0.1
 
 experiment_name=$1  # finetune_BU_{bu_loss}_TD_{td_loss}_R50_lr0.1_T0.1
 tpu_name=$2
+echo 'tpu name is $tpu_name'
 
 export TPU_NAME=$tpu_name  # 'prj-selfsup-tpu'
 export STORAGE_BUCKET='gs://serrelab'

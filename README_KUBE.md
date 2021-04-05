@@ -33,6 +33,8 @@ kubectl delete pod tensorboard
 # Delete pods in the cluster
 kubectl delete pods <pod-name>
 kubectl delete --all pods
+kubectl get job --all-namespaces
+kubectl delete job hmax-tpu
 
 # Clean up cluster
 bash stop_babysitting.sh
