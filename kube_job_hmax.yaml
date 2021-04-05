@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: selfsup-tpu
+  name: hmax-tpu
 spec:
   # parallelism: 8  # Matches number of preemptables. This is the queue size.
   template:
