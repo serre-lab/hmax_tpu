@@ -20,7 +20,7 @@ spec:
         # The official TensorFlow 1.15.2 image.
         # https://hub.docker.com/r/tensorflow/tensorflow
         # image: tensorflow/tensorflow:1.15.2
-        image: gcr.io/kubeflow-images-public/tensorflow-2.3-notebook-gpu:1.0.0
+        image: gcr.io/kubeflow-images-public/tensorflow-2.1.0-notebook-gpu:1.0.0
         command: ["/bin/sh"]
         args:
           - -c
