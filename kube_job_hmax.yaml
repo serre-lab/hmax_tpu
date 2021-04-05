@@ -10,7 +10,7 @@ spec:
         # The Cloud TPUs that will be created for this Job will support
         # TensorFlow 2.2. This version MUST match the
         # TensorFlow version that your model is built on.
-        tf-version.cloud-tpus.google.com: "1.15.2"
+        tf-version.cloud-tpus.google.com: "2.3"
     spec:
       securityContext:
         runAsUser: 0
@@ -20,7 +20,7 @@ spec:
         # The official TensorFlow 1.15.2 image.
         # https://hub.docker.com/r/tensorflow/tensorflow
         # image: tensorflow/tensorflow:1.15.2
-        image: gcr.io/kubeflow-images-public/tensorflow-1.15.2-notebook-gpu:1.0.0
+        image: tensorflow/tensorflow:2.3.0
         command: ["/bin/sh"]
         args:
           - -c

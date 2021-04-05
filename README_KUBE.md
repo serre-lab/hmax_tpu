@@ -17,6 +17,7 @@ kubectl get pods -w
 
 # Check pod logs
 kubectl logs <pod-name>
+kubectl logs --follow <pod-name>
 
 # Babysit existing preemptibles
 bash babysit_tpus.sh

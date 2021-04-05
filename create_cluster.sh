@@ -29,6 +29,6 @@ clusters create "$CLUSTER_NAME" \
 
 
 # Apply a quota to the cluster that matches preemptible resources
-kubectl create namespace quota-pod
-kubectl apply -f quota.yaml --namespace=quota-pod
+# kubectl create namespace quota-pod
+# kubectl apply -f quota.yaml --namespace=quota-pod
 gcloud beta container clusters update $CLUSTER_NAME --autoscaling-profile optimize-utilization
