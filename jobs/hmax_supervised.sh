@@ -1,6 +1,6 @@
 
 mode=train_and_eval
-depth=50
+# depth=50
 
 enable_lars=False
 train_batch_size=256
@@ -29,7 +29,6 @@ python3 main.py \
   --data_dir=$DATA_DIR\
   --model_dir=$MODEL_DIR\
   --export_dir=$EXPORT_DIR\
-  --depth=$depth\
   --train_batch_size=$train_batch_size\
   --base_learning_rate=$base_learning_rate\
   --enable_lars=$enable_lars\
