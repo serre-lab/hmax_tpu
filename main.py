@@ -34,10 +34,10 @@ from hyperparameters import common_hparams_flags
 from hyperparameters import common_tpu_flags
 from hyperparameters import flags_to_params
 from hyperparameters import params_dict
-from official.resnet import imagenet_input
-from official.resnet import lars_util
-from official.resnet import resnet_model
-from official.resnet.configs import resnet_config
+imagenet_input
+import lars_util
+resnet_model
+configs import resnet_config
 from tensorflow.core.protobuf import rewriter_config_pb2  # pylint: disable=g-direct-tensorflow-import
 
 common_tpu_flags.define_common_tpu_flags()
