@@ -1,0 +1,13 @@
+# Self-supervision experiments. Run all combos of these groups.
+bu_loss_type:
+    - "ar"
+    - "False"
+td_loss_type:
+    - "ar"
+    - "False"
+metric_channels:
+    - 32
+mask:
+    - 0.
+    - 0.1
+    - 0.5

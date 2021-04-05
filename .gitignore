@@ -1,0 +1,11 @@
+__pycache__/
+
+tpu_list.json
+current_job.txt
+logs/
+*.swp
+*.pyc
+SETENV.sh
+kube_files/
+.vscode
+

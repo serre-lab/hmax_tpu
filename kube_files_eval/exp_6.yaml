@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: selfsup-tpu-experiment-eval-6
+spec:
+  # parallelism: 8  # Matches number of preemptables. This is the queue size.
+  template:
+    metadata:
+      annotations:
+        tf-version.cloud-tpus.google.com: 1.15.2
+    spec:
+      containers:
+      - args:
+        - -c
+        - NEW_EXP=finetune-BU-False_TD-ar_R50_lr0.1_T0.1_mask0 &&
+          OLD_EXP=pretrain-BU-False_TD-ar_R50_lr0.1_T0.1_mask0 &&
+          CHECK_NAME=model.ckpt-125114 &&
+          TPU=$(KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS) &&
+          git clone https://github.com/serre-lab/prj_selfsup.git &&
+          cd prj_selfsup && pip3 install --upgrade pip && pip3 install -r requirements.txt &&
+          pip3 install -U tpunicorn && export PATH="$HOME/.local/bin:$PATH" &&
+          pu list &&
+          bash jobs/finetune_ilsvrc.sh $NEW_EXP $OLD_EXP $CHECK_NAME $TPU
+        command:
+        - /bin/sh
+        image: gcr.io/kubeflow-images-public/tensorflow-1.15.2-notebook-gpu:1.0.0
+        name: resnet-tpu
+        resources:
+          limits:
+            cloud-tpus.google.com/preemptible-v3: 256
+      securityContext:
+        runAsUser: 0
+      restartPolicy: Never
