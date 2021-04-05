@@ -39,4 +39,4 @@ python3 main.py \
   --skip_host_call=$skip_host_call\
   --num_cores=$num_cores\
   --enable_lars=$enable_lars\
-  --label_smoothing=label_smoothing
+  --label_smoothing=$label_smoothing
