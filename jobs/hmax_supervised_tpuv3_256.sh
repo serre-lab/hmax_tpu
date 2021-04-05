@@ -15,6 +15,8 @@ label_smoothing=0.1
 
 experiment_name=$1  # finetune_BU_{bu_loss}_TD_{td_loss}_R50_lr0.1_T0.1
 tpu_name=$2
+echo 'tpu experiment_name is'
+echo $experiment_name
 echo 'tpu name is'
 echo $tpu_name
 
