@@ -16,6 +16,7 @@ eval_batch_size=1024
 
 experiment_name=$1  # finetune_BU_{bu_loss}_TD_{td_loss}_R50_lr0.1_T0.1
 tpu_name=$2
+model_name=$3
 export TPU_NAME=$tpu_name  # 'prj-selfsup-tpu'
 export STORAGE_BUCKET='gs://serrelab'
 DATA_DIR=gs://imagenet_data/train/
@@ -46,3 +47,4 @@ python3 main.py \
 
 # Move params to the model bucket
 gsutil cp params.npz $MODEL_DIR
+gsutil cp models/$model_name.py $MODEL_DIR
