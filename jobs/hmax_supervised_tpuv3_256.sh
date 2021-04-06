@@ -20,11 +20,11 @@ model_name=$3
 export TPU_NAME=$tpu_name  # 'prj-selfsup-tpu'
 export STORAGE_BUCKET='gs://serrelab'
 DATA_DIR=gs://imagenet_data/train/
-gsutil mkdir $STORAGE_BUCKET/prj-hmax/results_eval
 # DATA_DIR=$STORAGE_BUCKET/imagenet_dataset/imagenet2012/5.0.0/
 MODEL_DIR=$STORAGE_BUCKET/prj-hmax/results/$experiment_name
 EXPORT_DIR=$STORAGE_BUCKET/prj-hmax/exported/$experiment_name
-
+gsutil mkdir $MODEL_DIR
+gsutil mkdir $EXPORT_DIR
 python3 main.py \
   --tpu=$TPU_NAME\
   --data_dir=$DATA_DIR\
