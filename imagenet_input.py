@@ -24,7 +24,7 @@ import functools
 import os
 from absl import logging
 import tensorflow.compat.v1 as tf
-import resnet_preprocessing
+from models import resnet_preprocessing
 
 
 def image_serving_input_fn():
