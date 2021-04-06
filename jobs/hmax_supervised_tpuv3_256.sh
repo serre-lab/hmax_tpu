@@ -10,7 +10,7 @@ eval_batch_size=1024
 iterations_per_loop=2558
 skip_host_call=True
 num_cores=256
-enable_lars=True
+enable_lars=False
 label_smoothing=0.1
 
 experiment_name=$1  # finetune_BU_{bu_loss}_TD_{td_loss}_R50_lr0.1_T0.1
