@@ -34,7 +34,6 @@ python3 main.py \
   --model_dir=$MODEL_DIR\
   --export_dir=$EXPORT_DIR\
   --resnet_depth=$resnet_depth\
-  --mode=$mode\
   --base_learning_rate=$base_learning_rate\
   --train_steps=$train_steps\
   --train_batch_size=$train_batch_size\
@@ -44,3 +43,5 @@ python3 main.py \
   --num_cores=$num_cores\
   --enable_lars=$enable_lars\
   --label_smoothing=$label_smoothing
+
+  # --mode=$mode\

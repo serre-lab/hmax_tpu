@@ -31,5 +31,5 @@ python3 main.py \
   --export_dir=$EXPORT_DIR\
   --train_batch_size=$train_batch_size\
   --base_learning_rate=$base_learning_rate\
-  --enable_lars=$enable_lars\
-  --mode=$mode
+  --enable_lars=$enable_lars
+  # --mode=$mode
