@@ -836,7 +836,7 @@ def main(unused_argv):
             )
       resnet_classifier.train(
           input_fn=imagenet_train.input_fn,
-          max_steps=params.train_steps,
+          max_steps=int(params.train_steps),
           hooks=hooks)
 
     else:
