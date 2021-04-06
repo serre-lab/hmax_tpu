@@ -30,7 +30,6 @@ spec:
             pip3 install --upgrade pip &&
             pip3 install -r requirements.txt &&
             pip3 install -U tpunicorn &&
-            pip3 install 
             export PATH="$HOME/.local/bin:$PATH" &&
             pu list &&
             EXP_NAME=resnet_tpuv3_256 &&
