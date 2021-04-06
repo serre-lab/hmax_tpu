@@ -47,4 +47,4 @@ python3 main.py \
 
 # Move params to the model bucket
 gsutil cp params.npz $MODEL_DIR
-gsutil cp models/$model_name.py $MODEL_DIR
+gsutil cp "models/${model_name}.py" $MODEL_DIR
