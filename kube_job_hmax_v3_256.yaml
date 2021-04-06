@@ -28,13 +28,11 @@ spec:
             git clone https://github.com/drewlinsley/hmax_tpu.git &&
             cd hmax_tpu &&
             pip3 install --upgrade pip &&
-            pip3 install -r requirements.txt &&
             pip3 install -U tpunicorn &&
+            pip3 install -r requirements.txt &&
             export PATH="$HOME/.local/bin:$PATH" &&
             pu list &&
             EXP_NAME=resnet_tpuv3_256 &&
-            echo 'PRE TPU NAME IS:' &&
-            echo $(KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS) &&
             bash jobs/hmax_supervised_tpuv3_256.sh $EXP_NAME $(KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS)
         resources:
           limits:
