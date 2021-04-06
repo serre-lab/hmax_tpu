@@ -1,13 +1,13 @@
 # Create kubernetes cluster with 4 nodes for self-sup experiments
 CLUSTER_NAME=self-sup
 MIN_NODES=0
-MAX_NODES=1  # 16
+MAX_NODES=2  # 16
 START_NODES=1  # 8
 
 gcloud beta container --project "beyond-dl-1503610372419" \
 clusters create "$CLUSTER_NAME" \
 --zone "europe-west4-a" --no-enable-basic-auth \
---cluster-version "1.17.17-gke.4400" \
+--cluster-version "1.18.16-gke.2100" \
 --machine-type "n1-standard-4" \
 --image-type "UBUNTU" \
 --disk-type "pd-standard" \
