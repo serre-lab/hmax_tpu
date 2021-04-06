@@ -704,7 +704,7 @@ def main(unused_argv):
 
   params = flags_to_params.override_params_from_input_flags(params, FLAGS)
   # Save params for transfer to GCS
-  np.savez('params.npz', **params)
+  np.save('params.npy', params)
 
   params.validate()
   params.lock()
