@@ -703,6 +703,8 @@ def main(unused_argv):
       params, FLAGS.params_override, is_strict=True)
 
   params = flags_to_params.override_params_from_input_flags(params, FLAGS)
+  # Save params for transfer to GCS
+  np.savez('params.npz', **params)
 
   params.validate()
   params.lock()
@@ -712,8 +714,6 @@ def main(unused_argv):
       zone=FLAGS.tpu_zone,
       project=FLAGS.gcp_project)
 
-  # Save params for transfer to GCS
-  np.savez('params.npz', **params)
 
   if params.use_async_checkpointing:
     save_checkpoints_steps = None
