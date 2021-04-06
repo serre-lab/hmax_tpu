@@ -826,7 +826,9 @@ def main(unused_argv):
     try:
       current_step = tf.train.load_variable(FLAGS.model_dir,
                                             tf.GraphKeys.GLOBAL_STEP)
-    except (TypeError, ValueError, tf.errors.NotFoundError):
+    except:  #  (TypeError, ValueError, tf.errors.NotFoundError):
+        tf.logging.info(
+            'No checkpoint, starting from scratch.')
       current_step = 0
     steps_per_epoch = params.num_train_images // params.train_batch_size
     tf.logging.info('Training for %d steps (%.2f epochs in total). Current'
