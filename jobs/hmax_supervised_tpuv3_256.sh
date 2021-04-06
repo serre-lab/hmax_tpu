@@ -22,9 +22,9 @@ echo $tpu_name
 
 export TPU_NAME=$tpu_name  # 'prj-selfsup-tpu'
 export STORAGE_BUCKET='gs://serrelab'
-# DATA_DIR=gs://imagenet_data/train/
+DATA_DIR=gs://imagenet_data/train/
 gsutil mkdir $STORAGE_BUCKET/prj-hmax/results_eval
-DATA_DIR=$STORAGE_BUCKET/imagenet_dataset/imagenet2012/5.0.0/
+# DATA_DIR=$STORAGE_BUCKET/imagenet_dataset/imagenet2012/5.0.0/
 MODEL_DIR=$STORAGE_BUCKET/prj-hmax/results/$experiment_name
 EXPORT_DIR=$STORAGE_BUCKET/prj-hmax/exported/$experiment_name
 
