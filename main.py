@@ -36,9 +36,11 @@ from hyperparameters import flags_to_params
 from hyperparameters import params_dict
 import imagenet_input
 import lars_util
-import resnet_model
+import models
 from configs import resnet_config
 from tensorflow.core.protobuf import rewriter_config_pb2  # pylint: disable=g-direct-tensorflow-import
+from importlib import import_module
+from google.cloud import storage
 
 common_tpu_flags.define_common_tpu_flags()
 common_hparams_flags.define_common_hparams_flags()
@@ -111,6 +113,10 @@ flags.DEFINE_integer(
 flags.DEFINE_string(
     'mode', default='train_and_eval',
     help='One of {"train_and_eval", "train", "eval"}.')
+
+flags.DEFINE_string(
+    'model_name', default='resnet',
+    help='Name of model class.')
 
 flags.DEFINE_integer(
     'steps_per_eval', default=1251,
@@ -245,6 +251,19 @@ def get_lr_schedule(train_steps, num_train_images, train_batch_size):
       (0.01, np.floor(60 / 90 * train_epochs)),
       (0.001, np.floor(80 / 90 * train_epochs))
   ]
+
+
+def upload_blob(bucket_name, source_file_name, destination_blob_name):
+  """Uploads a file to the bucket."""
+  storage_client = storage.Client()
+  bucket = storage_client.get_bucket(bucket_name)
+  blob = bucket.blob(destination_blob_name)
+
+  blob.upload_from_filename(source_file_name)
+
+  print('File {} uploaded to {}.'.format(
+      source_file_name,
+      destination_blob_name))
 
 
 def learning_rate_schedule(params, current_epoch):
@@ -401,7 +420,8 @@ def resnet_model_fn(features, labels, mode, params):
   # This nested function allows us to avoid duplicating the logic which
   # builds the network, for different values of --precision.
   def build_network():
-    network = resnet_model.resnet(
+    model = import_module('models.{}'.format(params['model_name']))
+    network = model.resnet(
         resnet_depth=params['resnet_depth'],
         num_classes=params['num_label_classes'],
         dropblock_size=params['dropblock_size'],
@@ -691,6 +711,9 @@ def main(unused_argv):
       FLAGS.tpu if (FLAGS.tpu or params.use_tpu) else '',
       zone=FLAGS.tpu_zone,
       project=FLAGS.gcp_project)
+
+  # Save params for transfer to GCS
+  np.savez('params.npz', **params)
 
   if params.use_async_checkpointing:
     save_checkpoints_steps = None
