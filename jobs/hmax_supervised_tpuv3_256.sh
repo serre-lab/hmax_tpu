@@ -27,6 +27,7 @@ gsutil mkdir $MODEL_DIR
 gsutil mkdir $EXPORT_DIR
 python3 main.py \
   --tpu=$TPU_NAME\
+  --mode=$mode\
   --data_dir=$DATA_DIR\
   --model_dir=$MODEL_DIR\
   --export_dir=$EXPORT_DIR\
@@ -34,7 +35,7 @@ python3 main.py \
   --eval_batch_size=$eval_batch_size\
   --resnet_depth=$resnet_depth\
   --model_script=$model_script\
-  --num_cores=$num_cores\
+  --num_cores=$num_cores
   # --skip_host_call
 
   # --train_steps=$train_steps\
