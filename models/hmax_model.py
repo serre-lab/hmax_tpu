@@ -54,7 +54,6 @@ def scale_invariance(
     drop_connect_rate,
     dropblock_keep_probs,
     stride_c2,
-    num_layers,
     custom_block_group,
     data_format):
   in_list = []
