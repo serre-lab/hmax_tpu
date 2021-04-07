@@ -30,6 +30,8 @@ python3 main.py \
   --data_dir=$DATA_DIR\
   --model_dir=$MODEL_DIR\
   --export_dir=$EXPORT_DIR\
+  --train_batch_size=$train_batch_size\
+  --eval_batch_size=$eval_batch_size\
   --resnet_depth=$resnet_depth\
   --model_name=$model_name\
   --num_cores=$num_cores\
@@ -37,11 +39,8 @@ python3 main.py \
 
   # --train_steps=$train_steps\
   # --base_learning_rate=$base_learning_rate\
-  # --train_steps=$train_steps\
   # --eval_batch_size=$eval_batch_size\
   # --iterations_per_loop=$iterations_per_loop\
-  # --skip_host_call=$skip_host_call\
-  # --num_cores=$num_cores\
   # --enable_lars=$enable_lars\
   # --label_smoothing=$label_smoothing
 
