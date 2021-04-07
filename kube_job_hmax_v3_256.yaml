@@ -33,7 +33,7 @@ spec:
             export PATH="$HOME/.local/bin:$PATH" &&
             pu list &&
             EXP_NAME=resnet_tpuv3_256 &&
-            MODEL_NAME=resnet_model
+            MODEL_NAME=resnet_model &&
             bash jobs/hmax_supervised_tpuv3_256.sh $EXP_NAME $(KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS) $MODEL_NAME
         resources:
           limits:
