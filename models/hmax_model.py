@@ -795,7 +795,7 @@ def resnet_generator(block_fn,
       custom_block_group=custom_block_group,
       data_format=data_format)
     inputs = tf.layers.max_pooling3d(
-        inputs=inputs, pool_size=(2, 2, 2), strides=(2, 2, 2), padding='SAME',
+        inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
         data_format=data_format)
     inputs = tf.squeeze(inputs, -1)  # Squeeze the last dim
 
@@ -815,7 +815,7 @@ def resnet_generator(block_fn,
       custom_block_group=custom_block_group,
       data_format=data_format)
     inputs = tf.layers.max_pooling3d(
-        inputs=inputs, pool_size=(2, 2, 2), strides=(2, 2, 2), padding='SAME',
+        inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
         data_format=data_format)
     inputs = tf.squeeze(inputs, -1)  # Squeeze the last dim
 
@@ -835,7 +835,7 @@ def resnet_generator(block_fn,
       custom_block_group=custom_block_group,
       data_format=data_format)
     inputs = tf.layers.max_pooling3d(
-        inputs=inputs, pool_size=(2, 2, 2), strides=(2, 2, 2), padding='SAME',
+        inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
         data_format=data_format)
     inputs = tf.squeeze(inputs, -1)  # Squeeze the last dim
 
@@ -855,7 +855,7 @@ def resnet_generator(block_fn,
       custom_block_group=custom_block_group,
       data_format=data_format)
     inputs = tf.layers.max_pooling3d(
-        inputs=inputs, pool_size=(2, 2, 2), strides=(2, 2, 2), padding='SAME',
+        inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
         data_format=data_format)
     inputs = tf.squeeze(inputs, -1)  # Squeeze the last dim
 
