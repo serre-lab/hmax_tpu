@@ -70,6 +70,7 @@ def scale_invariance(
           dropblock_keep_prob=dropblock_keep_probs,
           drop_connect_rate=drop_connect_rate)
       input = tf.image.resize(input, size[1:3], align_corners=True)
+      input = tf.cast(input, inputs.dtype)
       in_list.append(input)
     else:
       in_list.append(custom_block_group(
