@@ -28,7 +28,7 @@ from __future__ import print_function
 import functools
 import tensorflow.compat.v1 as tf
 
-import resnet_layers
+from models import resnet_layers
 
 MOVING_AVERAGE_DECAY = 0.9
 EPSILON = 1e-5
