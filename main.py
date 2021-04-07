@@ -420,7 +420,7 @@ def resnet_model_fn(features, labels, mode, params):
   # This nested function allows us to avoid duplicating the logic which
   # builds the network, for different values of --precision.
   def build_network():
-    model = import_module('models.{}'.format(params.model_script))
+    model = import_module('models.{}'.format(FLAGS.model_script))
     network = model.resnet(
         resnet_depth=params['resnet_depth'],
         num_classes=params['num_label_classes'],
