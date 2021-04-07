@@ -10,7 +10,7 @@ eval_batch_size=1024
 # train_steps=3558
 # iterations_per_loop=2558
 # skip_host_call=True
-# num_cores=256
+num_cores=256
 # enable_lars=False
 # label_smoothing=0.1
 
@@ -31,7 +31,9 @@ python3 main.py \
   --model_dir=$MODEL_DIR\
   --export_dir=$EXPORT_DIR\
   --resnet_depth=$resnet_depth\
-  --model_name=$model_name
+  --model_name=$model_name\
+  --num_cores=$num_cores\
+  --skip_host_call=$skip_host_call
 
   # --train_steps=$train_steps\
   # --base_learning_rate=$base_learning_rate\
