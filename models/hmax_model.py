@@ -78,7 +78,7 @@ def scale_invariance(
           strides=stride_c2, is_training=is_training, name=name,
           dropblock_keep_prob=dropblock_keep_probs,
           drop_connect_rate=drop_connect_rate))
-  inputs = tf.stack(in_list, -1)  # BHWCS
+  inputs = tf.stack(in_list, 1)  # BHWCS
   return inputs
 
 
@@ -797,7 +797,7 @@ def resnet_generator(block_fn,
     inputs = tf.layers.max_pooling3d(
         inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
         data_format=data_format)
-    inputs = tf.squeeze(inputs, -1)  # Squeeze the last dim
+    inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
 
     ## Block 2
     inputs = scale_invariance(
@@ -817,7 +817,7 @@ def resnet_generator(block_fn,
     inputs = tf.layers.max_pooling3d(
         inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
         data_format=data_format)
-    inputs = tf.squeeze(inputs, -1)  # Squeeze the last dim
+    inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
 
     ## Block 3
     inputs = scale_invariance(
@@ -837,7 +837,7 @@ def resnet_generator(block_fn,
     inputs = tf.layers.max_pooling3d(
         inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
         data_format=data_format)
-    inputs = tf.squeeze(inputs, -1)  # Squeeze the last dim
+    inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
 
     ## Block 4
     inputs = scale_invariance(
@@ -857,7 +857,7 @@ def resnet_generator(block_fn,
     inputs = tf.layers.max_pooling3d(
         inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
         data_format=data_format)
-    inputs = tf.squeeze(inputs, -1)  # Squeeze the last dim
+    inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
 
     if pre_activation:
       inputs = norm_activation(inputs, is_training, data_format=data_format,
