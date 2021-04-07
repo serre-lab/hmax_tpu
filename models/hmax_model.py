@@ -80,8 +80,7 @@ def scale_invariance(
           drop_connect_rate=resnet_layers.get_drop_connect_rate(
               drop_connect_rate, 2, num_layers)))
       size = inputs.get_shape().as_list()
-  inputs = tf.stack(in_list, -1)
-  inputs = tf.reduce_mean(inputs, -1)
+  inputs = tf.stack(in_list, -1)  # BHWCS
   return inputs
 
 
@@ -755,45 +754,19 @@ def resnet_generator(block_fn,
 
   def model(inputs, is_training):
     """Creation of the model graph."""
-    if use_resnetd_stem:
-      inputs = conv2d_fixed_padding(
-          inputs=inputs, filters=32, kernel_size=3, strides=2,
-          data_format=data_format)
-      inputs = norm_activation(
-          inputs, is_training, data_format=data_format,
-          layer=norm_act_layer, bn_momentum=bn_momentum)
-      inputs = conv2d_fixed_padding(
-          inputs=inputs, filters=32, kernel_size=3, strides=1,
-          data_format=data_format)
-      inputs = norm_activation(
-          inputs, is_training, data_format=data_format,
-          layer=norm_act_layer, bn_momentum=bn_momentum)
-      inputs = conv2d_fixed_padding(
-          inputs=inputs, filters=64, kernel_size=3, strides=1,
-          data_format=data_format)
-    else:
-      inputs = conv2d_fixed_padding(
-          inputs=inputs, filters=64, kernel_size=7, strides=2,
-          data_format=data_format)
+    inputs = conv2d_fixed_padding(
+        inputs=inputs, filters=64, kernel_size=7, strides=1,
+        data_format=data_format)
 
     inputs = tf.identity(inputs, 'initial_conv')
     if not pre_activation:
       inputs = norm_activation(inputs, is_training, data_format=data_format,
                                layer=norm_act_layer, bn_momentum=bn_momentum)
 
-    if not skip_stem_max_pool:
-      if replace_stem_max_pool:
-        inputs = conv2d_fixed_padding(
-            inputs=inputs, filters=64,
-            kernel_size=3, strides=2, data_format=data_format)
-        inputs = norm_activation(
-            inputs, is_training, data_format=data_format,
-            bn_momentum=bn_momentum)
-      else:
-        inputs = tf.layers.max_pooling2d(
-            inputs=inputs, pool_size=3, strides=2, padding='SAME',
-            data_format=data_format)
-        inputs = tf.identity(inputs, 'initial_max_pool')
+    inputs = tf.layers.max_pooling2d(
+        inputs=inputs, pool_size=3, strides=2, padding='SAME',
+        data_format=data_format)
+    inputs = tf.identity(inputs, 'initial_max_pool')
 
     custom_block_group = functools.partial(
         block_group,
@@ -806,8 +779,9 @@ def resnet_generator(block_fn,
         bn_momentum=bn_momentum)
 
     num_layers = len(layers) + 1
-    stride_c2 = 2 if skip_stem_max_pool else 1
+    stride_c2 = 1  #  if skip_stem_max_pool else 1
 
+    ## Block 1
     inputs = scale_invariance(
       inputs=inputs,
       scales=scales,
@@ -822,6 +796,12 @@ def resnet_generator(block_fn,
       stride_c2=stride_c2,
       custom_block_group=custom_block_group,
       data_format=data_format)
+    inputs = tf.layers.max_pooling3d(
+        inputs=inputs, pool_size=(2, 2, 2), strides=(2, 2, 2), padding='SAME',
+        data_format=data_format)
+    inputs = tf.squeeze(inputs, -1)  # Squeeze the last dim
+
+    ## Block 2
     inputs = scale_invariance(
       inputs=inputs,
       scales=scales,
@@ -836,6 +816,12 @@ def resnet_generator(block_fn,
       stride_c2=stride_c2,
       custom_block_group=custom_block_group,
       data_format=data_format)
+    inputs = tf.layers.max_pooling3d(
+        inputs=inputs, pool_size=(2, 2, 2), strides=(2, 2, 2), padding='SAME',
+        data_format=data_format)
+    inputs = tf.squeeze(inputs, -1)  # Squeeze the last dim
+
+    ## Block 3
     inputs = scale_invariance(
       inputs=inputs,
       scales=scales,
@@ -850,6 +836,12 @@ def resnet_generator(block_fn,
       stride_c2=stride_c2,
       custom_block_group=custom_block_group,
       data_format=data_format)
+    inputs = tf.layers.max_pooling3d(
+        inputs=inputs, pool_size=(2, 2, 2), strides=(2, 2, 2), padding='SAME',
+        data_format=data_format)
+    inputs = tf.squeeze(inputs, -1)  # Squeeze the last dim
+
+    ## Block 4
     inputs = scale_invariance(
       inputs=inputs,
       scales=scales,
@@ -864,6 +856,10 @@ def resnet_generator(block_fn,
       stride_c2=stride_c2,
       custom_block_group=custom_block_group,
       data_format=data_format)
+    inputs = tf.layers.max_pooling3d(
+        inputs=inputs, pool_size=(2, 2, 2), strides=(2, 2, 2), padding='SAME',
+        data_format=data_format)
+    inputs = tf.squeeze(inputs, -1)  # Squeeze the last dim
 
     if pre_activation:
       inputs = norm_activation(inputs, is_training, data_format=data_format,
@@ -893,7 +889,6 @@ def resnet_generator(block_fn,
         kernel_initializer=tf.random_normal_initializer(stddev=.01))
     inputs = tf.identity(inputs, 'final_dense')
     return inputs
-
   model.default_image_size = 224
   return model
 
