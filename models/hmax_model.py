@@ -57,28 +57,26 @@ def scale_invariance(
     custom_block_group,
     data_format):
   in_list = []
+  size = inputs.get_shape().as_list()
   for scale in range(1, scales + 1):
     if scale > 1:
       input = np.copy(inputs)
       input = tf.layers.max_pooling2d(
-          inputs=input, pool_size=2, strides=2, padding='SAME',
+          inputs=input, pool_size=2 * scale, strides=2 * scale, padding='SAME',
           data_format=data_format)
       input = custom_block_group(
-          inputs=input, filters=64, block_fn=block_fn, blocks=layers[0],
+          inputs=input, filters=filters, block_fn=block_fn, blocks=layers,
           strides=stride_c2, is_training=is_training, name=name,
-          dropblock_keep_prob=dropblock_keep_probs[0],
-          drop_connect_rate=resnet_layers.get_drop_connect_rate(
-              drop_connect_rate, 2, num_layers))
+          dropblock_keep_prob=dropblock_keep_probs,
+          drop_connect_rate=drop_connect_rate)
       input = tf.image.resize(input, size[1:3], align_corners=True)
       in_list.append(input)
     else:
       in_list.append(custom_block_group(
-          inputs=inputs, filters=64, block_fn=block_fn, blocks=layers[0],
+          inputs=inputs, filters=filters, block_fn=block_fn, blocks=layers,
           strides=stride_c2, is_training=is_training, name=name,
-          dropblock_keep_prob=dropblock_keep_probs[0],
-          drop_connect_rate=resnet_layers.get_drop_connect_rate(
-              drop_connect_rate, 2, num_layers)))
-      size = inputs.get_shape().as_list()
+          dropblock_keep_prob=dropblock_keep_probs,
+          drop_connect_rate=drop_connect_rate))
   inputs = tf.stack(in_list, -1)  # BHWCS
   return inputs
 
