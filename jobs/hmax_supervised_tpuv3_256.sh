@@ -16,7 +16,7 @@ num_cores=256
 
 experiment_name=$1  # finetune_BU_{bu_loss}_TD_{td_loss}_R50_lr0.1_T0.1
 tpu_name=$2
-model_name=$3
+model_script=$3
 export TPU_NAME=$tpu_name  # 'prj-selfsup-tpu'
 export STORAGE_BUCKET='gs://serrelab'
 DATA_DIR=gs://imagenet_data/train/
@@ -33,7 +33,7 @@ python3 main.py \
   --train_batch_size=$train_batch_size\
   --eval_batch_size=$eval_batch_size\
   --resnet_depth=$resnet_depth\
-  --model_name=$model_name\
+  --model_script=$model_script\
   --num_cores=$num_cores\
   # --skip_host_call
 
