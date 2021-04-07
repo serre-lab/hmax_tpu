@@ -1,5 +1,5 @@
 
-mode=train_and_eval
+mode=train  # _and_eval
 resnet_depth=50
 
 base_learning_rate=0.1
