@@ -60,7 +60,7 @@ def scale_invariance(
   size = inputs.get_shape().as_list()
   for scale in range(1, scales + 1):
     if scale > 1:
-      input = np.copy(inputs)
+      input = tf.identity(inputs)
       input = tf.layers.max_pooling2d(
           inputs=input, pool_size=2 * scale, strides=2 * scale, padding='SAME',
           data_format=data_format)
