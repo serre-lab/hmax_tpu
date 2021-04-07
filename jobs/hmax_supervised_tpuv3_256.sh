@@ -35,7 +35,7 @@ python3 main.py \
   --resnet_depth=$resnet_depth\
   --model_name=$model_name\
   --num_cores=$num_cores\
-  --skip_host_call=$skip_host_call
+  # --skip_host_call
 
   # --train_steps=$train_steps\
   # --base_learning_rate=$base_learning_rate\
