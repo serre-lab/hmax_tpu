@@ -896,7 +896,7 @@ def resnet_generator(block_fn,
       block_fn=block_fn,
       layers=layers[3],
       name='block_group4',
-      filters=512 + 128,  # Inception-style merge for C2->S4
+      filters=512,  # Inception-style merge for C2->S4
       drop_connect_rate=resnet_layers.get_drop_connect_rate(
         drop_connect_rate, 5, num_layers),
       dropblock_keep_probs=dropblock_keep_probs[3],
