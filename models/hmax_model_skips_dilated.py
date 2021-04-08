@@ -443,7 +443,7 @@ def conv2d_fixed_padding(inputs, filters, kernel_size, strides,
       inputs=inputs, filters=filters, kernel_size=kernel_size, strides=strides,
       padding=('SAME' if strides == 1 else 'VALID'), use_bias=False,
       kernel_initializer=tf.variance_scaling_initializer(),
-      data_format=data_format, dilation_rate=dilation_rate)
+      data_format=data_format, dilation_rate=dilation)
 
 
 def residual_block(inputs, filters, is_training, strides,
