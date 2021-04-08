@@ -59,6 +59,7 @@ def scale_invariance(
     data_format):
   in_list = []
   size = np.asarray(inputs.get_shape().as_list())
+  dtype = inputs.dtype
   for scale in range(1, scales + 1):
     if scale > 1:
       input = tf.identity(inputs)
@@ -70,6 +71,7 @@ def scale_invariance(
         [int(x) for x in size[1:3] // (2 * scale)],
         align_corners=True,
         method=RESIZE_METHOD)
+      input = tf.cast(input, dtype)
 
       input = custom_block_group(
           inputs=input, filters=filters, block_fn=block_fn, blocks=layers,
