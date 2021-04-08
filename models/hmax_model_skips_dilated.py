@@ -34,6 +34,7 @@ from models import resnet_layers
 MOVING_AVERAGE_DECAY = 0.9
 EPSILON = 1e-5
 
+RESIZE_METHOD = tf.image.ResizeMethod.BICUBIC
 LAYER_BN_RELU = 'bn_relu'
 LAYER_EVONORM_B0 = 'evonorm_b0'
 LAYER_EVONORM_S0 = 'evonorm_s0'
@@ -69,7 +70,7 @@ def scale_invariance(
           strides=stride_c2, is_training=is_training, name=name,
           dropblock_keep_prob=dropblock_keep_probs,
           drop_connect_rate=drop_connect_rate)
-      input = tf.image.resize(input, size[1:3], align_corners=True)
+      input = tf.image.resize(input, size[1:3], align_corners=True, method=RESIZE_METHOD)
       input = tf.cast(input, inputs.dtype)
       in_list.append(input)
     else:
@@ -803,6 +804,26 @@ def resnet_generator(block_fn,
         data_format=data_format)
     inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
 
+    ## Block S2b
+    c2b = scale_invariance(
+      inputs=inputs,
+      scales=scales,
+      is_training=is_training,
+      block_fn=block_fn,
+      layers=layers[0],
+      name='block_groups2b',
+      filters=128,
+      drop_connect_rate=resnet_layers.get_drop_connect_rate(
+        drop_connect_rate, 2, num_layers),
+      dropblock_keep_probs=dropblock_keep_probs[0],
+      stride_c2=stride_c2,
+      custom_block_group=custom_block_group,
+      data_format=data_format)
+    c2b = tf.layers.max_pooling3d(
+        inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
+        data_format=data_format)
+    c2b = tf.squeeze(c2b, 1)  # Squeeze the last dim
+
     ## Block S2/C2
     inputs = scale_invariance(
       inputs=inputs,
@@ -846,6 +867,14 @@ def resnet_generator(block_fn,
         data_format=data_format)
     inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
 
+    # Prep C3 for merge
+    merge_size = c2.get_shape().as_list()
+    inputs = tf.image.resize(inputs, merge_size[1:3], align_corners=True, method=RESIZE_METHOD)
+    inputs = tf.cast(inputs, c2.dtype)
+
+    # Merge C2 and C2b with C3
+    inputs = tf.concat([inputs, c2, c2b], 1)
+
     ## Block S4/C4
     inputs = scale_invariance(
       inputs=inputs,
@@ -863,18 +892,6 @@ def resnet_generator(block_fn,
       data_format=data_format)
     inputs = tf.layers.max_pooling3d(
         inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 1, 1), padding='SAME',
-        data_format=data_format)
-    inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
-
-    # Merge C2 with S4
-    merge_size = c2.get_shape().as_list()
-    inputs = tf.image.resize(inputs, merge_size[1:3], align_corners=True)
-    inputs = tf.cast(inputs, c2.dtype)
-    inputs = tf.stack([inputs, c2], 1)
-
-    # Don't pool over space, just the skip connection. This is S4 not C4.
-    inputs = tf.layers.max_pooling3d(
-        inputs=inputs, pool_size=(scales + 1, 1, 1), strides=(scales + 1, 1, 1), padding='SAME',
         data_format=data_format)
     inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
 
