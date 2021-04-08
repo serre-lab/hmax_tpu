@@ -419,7 +419,7 @@ def fixed_padding(inputs, kernel_size, data_format='channels_first'):
 
 
 def conv2d_fixed_padding(inputs, filters, kernel_size, strides,
-                         data_format='channels_first'):
+                         data_format='channels_first', dilation=(1, 1)):
   """Strided 2-D convolution with explicit padding.
 
   The padding is consistent and is based only on `kernel_size`, not on the
@@ -443,7 +443,7 @@ def conv2d_fixed_padding(inputs, filters, kernel_size, strides,
       inputs=inputs, filters=filters, kernel_size=kernel_size, strides=strides,
       padding=('SAME' if strides == 1 else 'VALID'), use_bias=False,
       kernel_initializer=tf.variance_scaling_initializer(),
-      data_format=data_format)
+      data_format=data_format, dilation_rate=dilation_rate)
 
 
 def residual_block(inputs, filters, is_training, strides,
@@ -526,7 +526,7 @@ def bottleneck_block(inputs, filters, is_training, strides,
                      dropblock_keep_prob=None, dropblock_size=None,
                      pre_activation=False, norm_act_layer=LAYER_BN_RELU,
                      resnetd_shortcut=False, se_ratio=None,
-                     drop_connect_rate=None, bn_momentum=MOVING_AVERAGE_DECAY):
+                     drop_connect_rate=None, bn_momentum=MOVING_AVERAGE_DECAY, dilation=(1, 1)):
   """Bottleneck block variant for residual networks with BN after convolutions.
 
   Args:
@@ -566,7 +566,6 @@ def bottleneck_block(inputs, filters, is_training, strides,
     # end with 4 times the number of filters.
     filters_out = 4 * filters
     if resnetd_shortcut and strides == 2:
-      raise NotImplementedError
       shortcut = tf.keras.layers.AveragePooling2D(
           pool_size=(2, 2), strides=(2, 2), padding='same',
           data_format=data_format)(inputs)
@@ -607,7 +606,7 @@ def bottleneck_block(inputs, filters, is_training, strides,
 
   inputs = conv2d_fixed_padding(
       inputs=inputs, filters=4 * filters, kernel_size=1, strides=1,
-      data_format=data_format)
+      data_format=data_format, dilation=dilation)
 
   if pre_activation:
     return inputs + shortcut
@@ -678,7 +677,10 @@ def block_group(inputs, filters, block_fn, blocks, strides, is_training, name,
                     drop_connect_rate=drop_connect_rate,
                     bn_momentum=bn_momentum)
 
-  for _ in range(1, blocks):
+  dilation = (1, 1)
+  for idx in range(1, blocks):
+    if idx == blocks - 1:
+      dilation = (2, 2)
     inputs = block_fn(inputs, filters, is_training, 1,
                       data_format=data_format,
                       dropblock_keep_prob=dropblock_keep_prob,
@@ -688,7 +690,8 @@ def block_group(inputs, filters, block_fn, blocks, strides, is_training, name,
                       se_ratio=se_ratio,
                       resnetd_shortcut=resnetd_shortcut,
                       drop_connect_rate=drop_connect_rate,
-                      bn_momentum=bn_momentum)
+                      bn_momentum=bn_momentum,
+                      dilation=dilation)
 
   return tf.identity(inputs, name)
 
@@ -755,7 +758,7 @@ def resnet_generator(block_fn,
     """Creation of the model graph."""
     inputs = conv2d_fixed_padding(
         inputs=inputs, filters=64, kernel_size=7, strides=1,
-        data_format=data_format)
+        data_format=data_format, dilation=(2, 2))
 
     inputs = tf.identity(inputs, 'initial_conv')
     if not pre_activation:
@@ -763,7 +766,7 @@ def resnet_generator(block_fn,
                                layer=norm_act_layer, bn_momentum=bn_momentum)
 
     inputs = tf.layers.max_pooling2d(
-        inputs=inputs, pool_size=3, strides=1, padding='SAME',
+        inputs=inputs, pool_size=3, strides=2, padding='SAME',  # ONLY STRIDE
         data_format=data_format)
     inputs = tf.identity(inputs, 'initial_max_pool')
 
@@ -780,7 +783,7 @@ def resnet_generator(block_fn,
     num_layers = len(layers) + 1
     stride_c2 = 1  #  if skip_stem_max_pool else 1
 
-    ## Block 1
+    ## Block S1/C1
     inputs = scale_invariance(
       inputs=inputs,
       scales=scales,
@@ -796,11 +799,11 @@ def resnet_generator(block_fn,
       custom_block_group=custom_block_group,
       data_format=data_format)
     inputs = tf.layers.max_pooling3d(
-        inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
+        inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 1, 1), padding='SAME',
         data_format=data_format)
     inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
 
-    ## Block 2
+    ## Block S2/C2
     inputs = scale_invariance(
       inputs=inputs,
       scales=scales,
@@ -816,11 +819,14 @@ def resnet_generator(block_fn,
       custom_block_group=custom_block_group,
       data_format=data_format)
     inputs = tf.layers.max_pooling3d(
-        inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
+        inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 1, 1), padding='SAME',
         data_format=data_format)
     inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
+    c2 = conv2d_fixed_padding(
+      inputs=inputs, filters=2048, kernel_size=1, strides=1,
+      data_format=data_format)
 
-    ## Block 3
+    ## Block S3/C3
     inputs = scale_invariance(
       inputs=inputs,
       scales=scales,
@@ -840,7 +846,7 @@ def resnet_generator(block_fn,
         data_format=data_format)
     inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
 
-    ## Block 4
+    ## Block S4/C4
     inputs = scale_invariance(
       inputs=inputs,
       scales=scales,
@@ -857,6 +863,18 @@ def resnet_generator(block_fn,
       data_format=data_format)
     inputs = tf.layers.max_pooling3d(
         inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 1, 1), padding='SAME',
+        data_format=data_format)
+    inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
+
+    # Merge C2 with S4
+    merge_size = c2.get_shape().as_list()
+    inputs = tf.image.resize(inputs, merge_size[1:3], align_corners=True)
+    inputs = tf.cast(inputs, c2.dtype)
+    inputs = tf.stack([inputs, c2], 1)
+
+    # Don't pool over space, just the skip connection. This is S4 not C4.
+    inputs = tf.layers.max_pooling3d(
+        inputs=inputs, pool_size=(scales + 1, 1, 1), strides=(scales + 1, 1, 1), padding='SAME',
         data_format=data_format)
     inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
 
