@@ -67,7 +67,7 @@ def scale_invariance(
       #     inputs=input, pool_size=2 * scale, strides=1, padding='SAME',
       #     data_format=data_format)
       input = tf.image.resize(
-        input,
+        tf.cast(input, tf.float32),
         [int(x) for x in size[1:3] // (2 * scale)],
         align_corners=True,
         method=RESIZE_METHOD)
@@ -79,7 +79,7 @@ def scale_invariance(
           dropblock_keep_prob=dropblock_keep_probs,
           drop_connect_rate=drop_connect_rate)
       input = tf.image.resize(
-        input,
+        tf.cast(input, tf.float32),
         size[1:3],
         align_corners=True,
         method=RESIZE_METHOD)
@@ -879,7 +879,7 @@ def resnet_generator(block_fn,
 
     # Prep C3 for merge
     merge_size = c2.get_shape().as_list()
-    inputs = tf.image.resize(inputs, merge_size[1:3], align_corners=True, method=RESIZE_METHOD)
+    inputs = tf.image.resize(tf.cast(inputs, tf.float32), merge_size[1:3], align_corners=True, method=RESIZE_METHOD)
     inputs = tf.cast(inputs, c2.dtype)
 
     # Merge C2 and C2b with C3
