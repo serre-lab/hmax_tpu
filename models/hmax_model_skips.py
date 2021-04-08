@@ -818,7 +818,9 @@ def resnet_generator(block_fn,
         inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
         data_format=data_format)
     inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
-    c2 = tf.identity(inputs)
+    c2 = conv2d_fixed_padding(
+      inputs=inputs, filters=2048, kernel_size=1, strides=1,
+      data_format=data_format)
 
     ## Block S3/C3
     inputs = scale_invariance(
