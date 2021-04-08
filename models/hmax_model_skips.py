@@ -855,12 +855,16 @@ def resnet_generator(block_fn,
       stride_c2=stride_c2,
       custom_block_group=custom_block_group,
       data_format=data_format)
+    inputs = tf.layers.max_pooling3d(
+        inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
+        data_format=data_format)
+    inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
 
     # Merge C2 with S4
     merge_size = c2.get_shape().as_list()
     inputs = tf.image.resize(inputs, merge_size[1:3], align_corners=True)
     inputs = tf.cast(inputs, c2.dtype)
-    inputs = tf.concat([inputs, c2], 1)
+    inputs = tf.stack([inputs, c2], 1)
 
     # Don't pool over space, just the skip connection. This is S4 not C4.
     inputs = tf.layers.max_pooling3d(
