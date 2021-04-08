@@ -878,6 +878,7 @@ def resnet_generator(block_fn,
 
     # Prep C3 for merge
     merge_size = c2.get_shape().as_list()
+    inputs = tf.cast(inputs, tf.float32)
     inputs = tf.image.resize(inputs, merge_size[1:3], align_corners=True, method=RESIZE_METHOD)
     inputs = tf.cast(inputs, c2.dtype)
 
