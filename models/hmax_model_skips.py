@@ -793,8 +793,9 @@ def resnet_generator(block_fn,
     stride_c2 = 1  #  if skip_stem_max_pool else 1
 
     ## Block S1/C1
+    c1 = tf.identity(inputs)
     inputs = scale_invariance(
-      inputs=inputs,
+      inputs=c1,
       scales=scales,
       is_training=is_training,
       block_fn=block_fn,
@@ -814,7 +815,7 @@ def resnet_generator(block_fn,
 
     ## Block S2b
     c2b = scale_invariance(
-      inputs=inputs,
+      inputs=c1,
       scales=scales,
       is_training=is_training,
       block_fn=block_fn,
@@ -828,7 +829,7 @@ def resnet_generator(block_fn,
       custom_block_group=custom_block_group,
       data_format=data_format)
     c2b = tf.layers.max_pooling3d(
-        inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
+        inputs=c2b, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
         data_format=data_format)
     c2b = tf.squeeze(c2b, 1)  # Squeeze the last dim
 
