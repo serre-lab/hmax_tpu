@@ -58,19 +58,29 @@ def scale_invariance(
     custom_block_group,
     data_format):
   in_list = []
-  size = inputs.get_shape().as_list()
+  size = np.asarray(inputs.get_shape().as_list())
   for scale in range(1, scales + 1):
     if scale > 1:
       input = tf.identity(inputs)
-      input = tf.layers.max_pooling2d(
-          inputs=input, pool_size=2 * scale, strides=1, padding='SAME',
-          data_format=data_format)
+      # input = tf.layers.max_pooling2d(
+      #     inputs=input, pool_size=2 * scale, strides=1, padding='SAME',
+      #     data_format=data_format)
+      input = tf.image.resize(
+        input,
+        [int(x) for x in size[1:3] // (2 * scale)],
+        align_corners=True,
+        method=RESIZE_METHOD)
+
       input = custom_block_group(
           inputs=input, filters=filters, block_fn=block_fn, blocks=layers,
           strides=stride_c2, is_training=is_training, name=name,
           dropblock_keep_prob=dropblock_keep_probs,
           drop_connect_rate=drop_connect_rate)
-      input = tf.image.resize(input, size[1:3], align_corners=True, method=RESIZE_METHOD)
+      input = tf.image.resize(
+        input,
+        size[1:3],
+        align_corners=True,
+        method=RESIZE_METHOD)
       input = tf.cast(input, inputs.dtype)
       in_list.append(input)
     else:
@@ -712,7 +722,7 @@ def resnet_generator(block_fn,
                      dropblock_size=None,
                      pre_activation=False,
                      norm_act_layer=LAYER_BN_RELU,
-                     scales=2,
+                     scales=10,
                      bn_momentum=MOVING_AVERAGE_DECAY):
   """Generator for ResNet models.
 
@@ -843,9 +853,7 @@ def resnet_generator(block_fn,
         inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 1, 1), padding='SAME',
         data_format=data_format)
     inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
-    c2 = conv2d_fixed_padding(
-      inputs=inputs, filters=2048, kernel_size=1, strides=1,
-      data_format=data_format)
+    c2 = tf.identity(inputs)
 
     ## Block S3/C3
     inputs = scale_invariance(
