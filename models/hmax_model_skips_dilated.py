@@ -66,8 +66,9 @@ def scale_invariance(
       # input = tf.layers.max_pooling2d(
       #     inputs=input, pool_size=2 * scale, strides=1, padding='SAME',
       #     data_format=data_format)
+      input = tf.cast(input, tf.float32)
       input = tf.image.resize(
-        tf.cast(input, tf.float32),
+        input,
         [int(x) for x in size[1:3] // (2 * scale)],
         align_corners=True,
         method=RESIZE_METHOD)
@@ -78,12 +79,13 @@ def scale_invariance(
           strides=stride_c2, is_training=is_training, name=name,
           dropblock_keep_prob=dropblock_keep_probs,
           drop_connect_rate=drop_connect_rate)
+      input = tf.cast(input, tf.float32)
       input = tf.image.resize(
-        tf.cast(input, tf.float32),
+        input,
         size[1:3],
         align_corners=True,
         method=RESIZE_METHOD)
-      input = tf.cast(input, inputs.dtype)
+      input = tf.cast(input, dtype)
       in_list.append(input)
     else:
       in_list.append(custom_block_group(
@@ -93,7 +95,6 @@ def scale_invariance(
           drop_connect_rate=drop_connect_rate))
   inputs = tf.stack(in_list, 1)  # BHWCS
   return inputs
-
 
 def norm_activation(
     inputs, is_training, layer=LAYER_BN_RELU, nonlinearity=True,
@@ -880,7 +881,8 @@ def resnet_generator(block_fn,
 
     # Prep C3 for merge
     merge_size = c2.get_shape().as_list()
-    inputs = tf.image.resize(tf.cast(inputs, tf.float32), merge_size[1:3], align_corners=True, method=RESIZE_METHOD)
+    inputs = tf.cast(inputs, tf.float32)
+    inputs = tf.image.resize(inputs, merge_size[1:3], align_corners=True, method=RESIZE_METHOD)
     inputs = tf.cast(inputs, c2.dtype)
 
     # Merge C2 and C2b with C3
