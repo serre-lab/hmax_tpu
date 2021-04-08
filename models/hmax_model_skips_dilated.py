@@ -889,7 +889,7 @@ def resnet_generator(block_fn,
     c2 = tf.cast(c2, c2b.dtype)
 
     # Merge C2 and C2b with C3
-    inputs = tf.concat([inputs, c2, c2b], 1)
+    inputs = tf.concat([inputs, c2, c2b], -1)
 
     ## Block S4/C4
     inputs = scale_invariance(
