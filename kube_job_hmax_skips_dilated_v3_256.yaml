@@ -34,7 +34,7 @@ spec:
             pu list &&
             EXP_NAME=hmax_skips_dilated_tpuv3_256 &&
             MODEL_NAME=hmax_model_skips_dilated &&
-            bash jobs/hmax_supervised_tpuv3_256.sh $EXP_NAME $(KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS) $MODEL_NAME
+            bash jobs/dilated_hmax_supervised_tpuv3_256.sh $EXP_NAME $(KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS) $MODEL_NAME
         resources:
           limits:
             # Request a single Preemptible v2-8 Cloud TPU device to train the
