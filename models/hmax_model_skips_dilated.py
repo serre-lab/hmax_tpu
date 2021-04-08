@@ -34,7 +34,7 @@ from models import resnet_layers
 MOVING_AVERAGE_DECAY = 0.9
 EPSILON = 1e-5
 
-RESIZE_METHOD = tf.image.ResizeMethod.BICUBIC
+RESIZE_METHOD = tf.image.ResizeMethod.BILINEAR
 LAYER_BN_RELU = 'bn_relu'
 LAYER_EVONORM_B0 = 'evonorm_b0'
 LAYER_EVONORM_S0 = 'evonorm_s0'
@@ -725,7 +725,7 @@ def resnet_generator(block_fn,
                      dropblock_size=None,
                      pre_activation=False,
                      norm_act_layer=LAYER_BN_RELU,
-                     scales=10,
+                     scales=4,
                      bn_momentum=MOVING_AVERAGE_DECAY):
   """Generator for ResNet models.
 

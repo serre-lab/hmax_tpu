@@ -34,7 +34,7 @@ from models import resnet_layers
 MOVING_AVERAGE_DECAY = 0.9
 EPSILON = 1e-5
 
-RESIZE_METHOD = tf.image.ResizeMethod.BICUBIC
+RESIZE_METHOD = tf.image.ResizeMethod.BILINEAR
 LAYER_BN_RELU = 'bn_relu'
 LAYER_EVONORM_B0 = 'evonorm_b0'
 LAYER_EVONORM_S0 = 'evonorm_s0'
