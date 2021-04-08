@@ -877,10 +877,13 @@ def resnet_generator(block_fn,
     inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
 
     # Prep C3 for merge
-    merge_size = c2.get_shape().as_list()
+    merge_size = c2b.get_shape().as_list()
     inputs = tf.cast(inputs, tf.float32)
     inputs = tf.image.resize(inputs, merge_size[1:3], align_corners=True, method=RESIZE_METHOD)
-    inputs = tf.cast(inputs, c2.dtype)
+    inputs = tf.cast(inputs, c2b.dtype)
+    c2 = tf.cast(c2, tf.float32)
+    c2 = tf.image.resize(c2, merge_size[1:3], align_corners=True, method=RESIZE_METHOD)
+    c2 = tf.cast(c2, c2b.dtype)
 
     # Merge C2 and C2b with C3
     inputs = tf.concat([inputs, c2, c2b], 1)
