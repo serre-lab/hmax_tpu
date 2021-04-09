@@ -682,7 +682,7 @@ def block_group(inputs, filters, block_fn, blocks, strides, is_training, name,
     The output `Tensor` of the block layer.
   """
   # Only the first block per block_group uses projection shortcut and strides.
-  with tf.variable_scope("{}_{}".format(name, 0)):
+  with tf.variable_scope("{}_{}".format(name, 0), reuse=tf.AUTO_REUSE):
     inputs = block_fn(inputs, filters, is_training, strides,
                       name="{}_{}".format(name, 0),
                       use_projection=True, data_format=data_format,
@@ -696,7 +696,7 @@ def block_group(inputs, filters, block_fn, blocks, strides, is_training, name,
                       bn_momentum=bn_momentum)
 
   for idx in range(1, blocks):
-    with tf.variable_scope("{}_{}".format(name, idx)):
+    with tf.variable_scope("{}_{}".format(name, idx), reuse=tf.AUTO_REUSE):
       inputs = block_fn(inputs, filters, is_training, 1,
                         name="{}_{}".format(name, idx),
                         data_format=data_format,
