@@ -99,7 +99,7 @@ def scale_invariance(
 
 def norm_activation(
     inputs, is_training, layer=LAYER_BN_RELU, nonlinearity=True,
-    init_zero=False, data_format='channels_first',
+    init_zero=False, data_format='channels_first', name=None,
     bn_momentum=MOVING_AVERAGE_DECAY):
   """Normalization-activation layer."""
   if layer == LAYER_BN_RELU:
@@ -116,7 +116,7 @@ def norm_activation(
 
 
 def batch_norm_relu(inputs, is_training, relu=True, init_zero=False,
-                    data_format='channels_first',
+                    data_format='channels_first', name=None,
                     bn_momentum=MOVING_AVERAGE_DECAY):
   """Performs a batch normalization followed by a ReLU.
 
@@ -152,6 +152,7 @@ def batch_norm_relu(inputs, is_training, relu=True, init_zero=False,
       scale=True,
       training=is_training,
       fused=True,
+      name=name,
       gamma_initializer=gamma_initializer)
 
   if relu:
@@ -433,7 +434,7 @@ def fixed_padding(inputs, kernel_size, data_format='channels_first'):
   return padded_inputs
 
 
-def conv2d_fixed_padding(inputs, filters, kernel_size, strides,
+def conv2d_fixed_padding(inputs, filters, kernel_size, strides, name=None,
                          data_format='channels_first'):
   """Strided 2-D convolution with explicit padding.
 
@@ -457,7 +458,7 @@ def conv2d_fixed_padding(inputs, filters, kernel_size, strides,
   return tf.layers.conv2d(
       inputs=inputs, filters=filters, kernel_size=kernel_size, strides=strides,
       padding=('SAME' if strides == 1 else 'VALID'), use_bias=False,
-      kernel_initializer=tf.variance_scaling_initializer(),
+      kernel_initializer=tf.variance_scaling_initializer(), name=name,
       data_format=data_format)
 
 
@@ -536,7 +537,7 @@ def residual_block(inputs, filters, is_training, strides,
     return tf.nn.relu(inputs + shortcut)
 
 
-def bottleneck_block(inputs, filters, is_training, strides,
+def bottleneck_block(inputs, filters, is_training, strides, name,
                      use_projection=False, data_format='channels_first',
                      dropblock_keep_prob=None, dropblock_size=None,
                      pre_activation=False, norm_act_layer=LAYER_BN_RELU,
@@ -574,7 +575,7 @@ def bottleneck_block(inputs, filters, is_training, strides,
   """
   shortcut = inputs
   if pre_activation:
-    inputs = norm_activation(inputs, is_training, data_format=data_format,
+    inputs = norm_activation(inputs, is_training, data_format=data_format, name="n0_{}".format(name),
                              layer=norm_act_layer, bn_momentum=bn_momentum)
   if use_projection:
     # Projection shortcut only in first block within a group. Bottleneck blocks
@@ -585,16 +586,16 @@ def bottleneck_block(inputs, filters, is_training, strides,
           pool_size=(2, 2), strides=(2, 2), padding='same',
           data_format=data_format)(inputs)
       shortcut = conv2d_fixed_padding(
-          inputs=shortcut, filters=filters_out, kernel_size=1, strides=1,
+          inputs=shortcut, filters=filters_out, kernel_size=1, strides=1, name="c0_{}".format(name),
           data_format=data_format)
     else:
       shortcut = conv2d_fixed_padding(
-          inputs=inputs, filters=filters_out, kernel_size=1, strides=strides,
+          inputs=inputs, filters=filters_out, kernel_size=1, strides=strides, name="c0_{}".format(name),
           data_format=data_format)
 
     if not pre_activation:
       shortcut = norm_activation(
-          shortcut, is_training, nonlinearity=False,
+          shortcut, is_training, nonlinearity=False, name="n0_{}".format(name),
           data_format=data_format, layer=norm_act_layer,
           bn_momentum=bn_momentum)
   shortcut = dropblock(
@@ -602,31 +603,31 @@ def bottleneck_block(inputs, filters, is_training, strides,
       keep_prob=dropblock_keep_prob, dropblock_size=dropblock_size)
 
   inputs = conv2d_fixed_padding(
-      inputs=inputs, filters=filters, kernel_size=1, strides=1,
+      inputs=inputs, filters=filters, kernel_size=1, strides=1, name="c1_{}".format(name),
       data_format=data_format)
-  inputs = norm_activation(inputs, is_training, data_format=data_format,
+  inputs = norm_activation(inputs, is_training, data_format=data_format, name="n1_{}".format(name),
                            layer=norm_act_layer, bn_momentum=bn_momentum)
   inputs = dropblock(
       inputs, is_training=is_training, data_format=data_format,
       keep_prob=dropblock_keep_prob, dropblock_size=dropblock_size)
 
   inputs = conv2d_fixed_padding(
-      inputs=inputs, filters=filters, kernel_size=3, strides=strides,
+      inputs=inputs, filters=filters, kernel_size=3, strides=strides, name="c2_{}".format(name),
       data_format=data_format)
-  inputs = norm_activation(inputs, is_training, data_format=data_format,
+  inputs = norm_activation(inputs, is_training, data_format=data_format, name="n2_{}".format(name),
                            layer=norm_act_layer, bn_momentum=bn_momentum)
   inputs = dropblock(
       inputs, is_training=is_training, data_format=data_format,
       keep_prob=dropblock_keep_prob, dropblock_size=dropblock_size)
 
   inputs = conv2d_fixed_padding(
-      inputs=inputs, filters=4 * filters, kernel_size=1, strides=1,
+      inputs=inputs, filters=4 * filters, kernel_size=1, strides=1, name="c3_{}".format(name),
       data_format=data_format)
 
   if pre_activation:
     return inputs + shortcut
   else:
-    inputs = norm_activation(inputs, is_training, nonlinearity=False,
+    inputs = norm_activation(inputs, is_training, nonlinearity=False, name="n3_{}".format(name),
                              init_zero=True, data_format=data_format,
                              layer=norm_act_layer, bn_momentum=bn_momentum)
     inputs = dropblock(
@@ -635,7 +636,7 @@ def bottleneck_block(inputs, filters, is_training, strides,
 
     if se_ratio is not None and se_ratio > 0 and se_ratio <= 1:
       inputs = resnet_layers.squeeze_excitation(
-          inputs, in_filters=4 * filters,
+          inputs, in_filters=4 * filters, name=name,
           se_ratio=se_ratio, data_format='channels_last')
 
     if drop_connect_rate is not None:
@@ -681,20 +682,10 @@ def block_group(inputs, filters, block_fn, blocks, strides, is_training, name,
     The output `Tensor` of the block layer.
   """
   # Only the first block per block_group uses projection shortcut and strides.
-  inputs = block_fn(inputs, filters, is_training, strides,
-                    use_projection=True, data_format=data_format,
-                    dropblock_keep_prob=dropblock_keep_prob,
-                    dropblock_size=dropblock_size,
-                    pre_activation=pre_activation,
-                    norm_act_layer=norm_act_layer,
-                    se_ratio=se_ratio,
-                    resnetd_shortcut=resnetd_shortcut,
-                    drop_connect_rate=drop_connect_rate,
-                    bn_momentum=bn_momentum)
-
-  for _ in range(1, blocks):
-    inputs = block_fn(inputs, filters, is_training, 1,
-                      data_format=data_format,
+  with tf.variable_scope("{}_{}".format(name, 0)):
+    inputs = block_fn(inputs, filters, is_training, strides,
+                      name="{}_{}".format(name, 0),
+                      use_projection=True, data_format=data_format,
                       dropblock_keep_prob=dropblock_keep_prob,
                       dropblock_size=dropblock_size,
                       pre_activation=pre_activation,
@@ -704,6 +695,19 @@ def block_group(inputs, filters, block_fn, blocks, strides, is_training, name,
                       drop_connect_rate=drop_connect_rate,
                       bn_momentum=bn_momentum)
 
+  for idx in range(1, blocks):
+    with tf.variable_scope("{}_{}".format(name, idx)):
+      inputs = block_fn(inputs, filters, is_training, 1,
+                        name="{}_{}".format(name, idx),
+                        data_format=data_format,
+                        dropblock_keep_prob=dropblock_keep_prob,
+                        dropblock_size=dropblock_size,
+                        pre_activation=pre_activation,
+                        norm_act_layer=norm_act_layer,
+                        se_ratio=se_ratio,
+                        resnetd_shortcut=resnetd_shortcut,
+                        drop_connect_rate=drop_connect_rate,
+                        bn_momentum=bn_momentum)
   return tf.identity(inputs, name)
 
 

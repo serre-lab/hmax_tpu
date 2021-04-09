@@ -51,6 +51,7 @@ def drop_connect(inputs, is_training, drop_connect_rate):
 def squeeze_excitation(inputs,
                        in_filters,
                        se_ratio,
+                       name=None,
                        expand_ratio=1,
                        data_format='channels_last'):
   """Squeeze and excitation implementation.
@@ -74,6 +75,7 @@ def squeeze_excitation(inputs,
       kernel_initializer=tf.variance_scaling_initializer(),
       padding='same',
       data_format=data_format,
+      name="se0_{}".format(name),
       use_bias=True)
   se_expand = tf.layers.Conv2D(
       in_filters * expand_ratio,
@@ -82,6 +84,7 @@ def squeeze_excitation(inputs,
       kernel_initializer=tf.variance_scaling_initializer(),
       padding='same',
       data_format=data_format,
+      name="se1_{}".format(name),
       use_bias=True)
 
   # Process input
