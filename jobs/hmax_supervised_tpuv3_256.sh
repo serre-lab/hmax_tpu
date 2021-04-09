@@ -4,7 +4,7 @@ resnet_depth=50
 
 base_learning_rate=0.1
 use_tpu=True
-train_batch_size=2048
+train_batch_size=4096
 eval_batch_size=1024
 
 # train_steps=3558
