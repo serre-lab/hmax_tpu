@@ -5,7 +5,7 @@ resnet_depth=50
 base_learning_rate=0.1
 use_tpu=True
 train_batch_size=4096
-eval_batch_size=1024
+eval_batch_size=256  # 1024
 
 # train_steps=3558
 # iterations_per_loop=2558
@@ -13,17 +13,23 @@ eval_batch_size=1024
 # enable_lars=False
 # label_smoothing=0.1
 
+tpu_name=hmax
+
 experiment_name=hmax_skips_tpuv3_256  # finetune_BU_{bu_loss}_TD_{td_loss}_R50_lr0.1_T0.1
-tpu_name=l-v3-8-1
 model_script=hmax_model_skips
+
+experiment_name=resnet_tpuv3_256
+model_script=resnet_model
+
+experiment_name=hmax_skips_dilated_tpuv3_256
+model_script=hmax_model_skips_dilated
+
 export TPU_NAME=$tpu_name  # 'prj-selfsup-tpu'
 export STORAGE_BUCKET='gs://serrelab'
 DATA_DIR=gs://imagenet_data/train/
 # DATA_DIR=$STORAGE_BUCKET/imagenet_dataset/imagenet2012/5.0.0/
 MODEL_DIR=$STORAGE_BUCKET/prj-hmax/results/$experiment_name
 EXPORT_DIR=$STORAGE_BUCKET/prj-hmax/exported/$experiment_name
-gsutil mkdir $MODEL_DIR
-gsutil mkdir $EXPORT_DIR
 python3 main.py \
   --tpu=$TPU_NAME\
   --mode=$mode\
@@ -34,8 +40,6 @@ python3 main.py \
   --eval_batch_size=$eval_batch_size\
   --resnet_depth=$resnet_depth\
   --model_script=$model_script\
-  # --num_cores=$num_cores
-  # --skip_host_call
 
   # --train_steps=$train_steps\
   # --base_learning_rate=$base_learning_rate\
@@ -46,6 +50,3 @@ python3 main.py \
 
   # --mode=$mode\
 
-# Move params to the model bucket
-gsutil cp params.npz $MODEL_DIR
-gsutil cp "models/${model_script}.py" $MODEL_DIR

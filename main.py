@@ -796,8 +796,9 @@ def main(unused_argv):
     # Run evaluation when there's a new checkpoint
     for ckpt in tf.train.checkpoints_iterator(
         FLAGS.model_dir, timeout=FLAGS.eval_timeout):
-      tf.logging.info('Starting to evaluate.')
-      try:
+    # for ckpt in ["gs://serrelab/prj-hmax/results/hmax_skips_tpuv3_256/model.ckpt-112590"]:
+    #   tf.logging.info('Starting to evaluate {}.'.format(ckpt))
+      # try:
         start_timestamp = time.time()  # This time will include compilation time
         eval_results = resnet_classifier.evaluate(
             input_fn=imagenet_eval.input_fn,
@@ -814,7 +815,7 @@ def main(unused_argv):
               'Evaluation finished after training step %d', current_step)
           break
 
-      except tf.errors.NotFoundError:
+      # except tf.errors.NotFoundError:
         # Since the coordinator is on a different job than the TPU worker,
         # sometimes the TPU worker does not finish initializing until long after
         # the CPU job tells it to start evaluating. In this case, the checkpoint
