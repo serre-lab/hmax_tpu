@@ -682,10 +682,26 @@ def block_group(inputs, filters, block_fn, blocks, strides, is_training, name,
     The output `Tensor` of the block layer.
   """
   # Only the first block per block_group uses projection shortcut and strides.
-  with tf.variable_scope("{}_{}".format(name, 0), reuse=tf.AUTO_REUSE):
-    inputs = block_fn(inputs, filters, is_training, strides,
-                      name="{}_{}".format(name, 0),
-                      use_projection=True, data_format=data_format,
+  # with tf.variable_scope("{}_{}".format(name, 0), reuse=tf.AUTO_REUSE):
+  inputs = block_fn(inputs, filters, is_training, strides,
+                    name="{}_{}".format(name, 0),
+                    use_projection=True, data_format=data_format,
+                    dropblock_keep_prob=dropblock_keep_prob,
+                    dropblock_size=dropblock_size,
+                    pre_activation=pre_activation,
+                    norm_act_layer=norm_act_layer,
+                    se_ratio=se_ratio,
+                    resnetd_shortcut=resnetd_shortcut,
+                    drop_connect_rate=drop_connect_rate,
+                    bn_momentum=bn_momentum)
+  dilation = (1, 1)
+  for idx in range(1, blocks):
+    if idx == blocks - 1:
+      dilation = (2, 2)
+    # with tf.variable_scope("{}_{}".format(name, idx), reuse=tf.AUTO_REUSE):
+    inputs = block_fn(inputs, filters, is_training, 1,
+                      name="{}_{}".format(name, idx),
+                      data_format=data_format,
                       dropblock_keep_prob=dropblock_keep_prob,
                       dropblock_size=dropblock_size,
                       pre_activation=pre_activation,
@@ -693,24 +709,8 @@ def block_group(inputs, filters, block_fn, blocks, strides, is_training, name,
                       se_ratio=se_ratio,
                       resnetd_shortcut=resnetd_shortcut,
                       drop_connect_rate=drop_connect_rate,
-                      bn_momentum=bn_momentum)
-  dilation = (1, 1)
-  for idx in range(1, blocks):
-    if idx == blocks - 1:
-      dilation = (2, 2)
-    with tf.variable_scope("{}_{}".format(name, idx), reuse=tf.AUTO_REUSE):
-      inputs = block_fn(inputs, filters, is_training, 1,
-                        name="{}_{}".format(name, idx),
-                        data_format=data_format,
-                        dropblock_keep_prob=dropblock_keep_prob,
-                        dropblock_size=dropblock_size,
-                        pre_activation=pre_activation,
-                        norm_act_layer=norm_act_layer,
-                        se_ratio=se_ratio,
-                        resnetd_shortcut=resnetd_shortcut,
-                        drop_connect_rate=drop_connect_rate,
-                        bn_momentum=bn_momentum,
-                        dilation=dilation)
+                      bn_momentum=bn_momentum,
+                      dilation=dilation)
   return tf.identity(inputs, name)
 
 

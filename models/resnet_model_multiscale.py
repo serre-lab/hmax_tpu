@@ -24,7 +24,6 @@ Residual networks (ResNets) were proposed in:
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import numpy as np
 
 import functools
 import tensorflow.compat.v1 as tf
@@ -34,7 +33,6 @@ from models import resnet_layers
 MOVING_AVERAGE_DECAY = 0.9
 EPSILON = 1e-5
 
-RESIZE_METHOD = tf.image.ResizeMethod.BILINEAR
 LAYER_BN_RELU = 'bn_relu'
 LAYER_EVONORM_B0 = 'evonorm_b0'
 LAYER_EVONORM_S0 = 'evonorm_s0'
@@ -44,62 +42,75 @@ LAYER_EVONORMS = [
 ]
 
 
-def scale_invariance(
-    inputs,
-    scales,
-    is_training,
-    block_fn,
-    layers,
-    name,
-    filters,
-    drop_connect_rate,
-    dropblock_keep_probs,
-    stride_c2,
-    custom_block_group,
-    data_format):
-  in_list = []
-  size = np.asarray(inputs.get_shape().as_list())
-  dtype = inputs.dtype
-  for scale in range(1, scales + 1):
-    if scale > 1:
-      input = tf.identity(inputs)
-      # input = tf.layers.max_pooling2d(
-      #     inputs=input, pool_size=2 * scale, strides=1, padding='SAME',
-      #     data_format=data_format)
-      input = tf.cast(input, tf.float32)
-      input = tf.image.resize(
-        input,
-        [int(x) for x in size[1:3] // (2 * scale)],
-        align_corners=True,
-        method=RESIZE_METHOD)
-      input = tf.cast(input, dtype)
 
-      input = custom_block_group(
-          inputs=input, filters=filters, block_fn=block_fn, blocks=layers,
+def multiscale(
+    inputs,
+    data_format,
+    scales,
+    custom_block_group,
+    filters,
+    block_fn,
+    layer,
+    stride_c2,
+    is_training,
+    name,
+    dropblock_keep_prob,
+    drop_connect_rate):
+  resize = inputs.get_shape().as_list()
+  if data_format == "channels_first":
+    resize = [resize[0], resize[2], resize[3], resize[1]]  # BHWC
+  dtype = inputs.dtype
+  outputs = []
+  with tf.variable_scope("multiscale", reuse=tf.AUTO_REUSE):
+    for scale in range(scales):
+      if scale > 0:
+        inputs = tf.cast(inputs, tf.float32)
+        if data_format == "channels_first":
+          inputs = tf.transpose(inputs, [0, 2, 3, 1])  # BCHW -> BHWC
+        inputs = tf.image.resize(
+          inputs,
+          [resize[1] // (scale + 1), resize[2] // (scale + 1)],
+          align_corners=True)
+        inputs = tf.cast(inputs, dtype)
+        if data_format == "channels_first":
+          inputs = tf.transpose(inputs, [0, 3, 1, 2])  # BHWC -> BCHW
+      output = custom_block_group(
+          inputs=inputs, filters=filters, block_fn=block_fn, blocks=layer,
           strides=stride_c2, is_training=is_training, name=name,
-          dropblock_keep_prob=dropblock_keep_probs,
-          drop_connect_rate=drop_connect_rate)
-      input = tf.cast(input, tf.float32)
-      input = tf.image.resize(
-        input,
-        size[1:3],
-        align_corners=True,
-        method=RESIZE_METHOD)
-      input = tf.cast(input, dtype)
-      in_list.append(input)
-    else:
-      in_list.append(custom_block_group(
-          inputs=inputs, filters=filters, block_fn=block_fn, blocks=layers,
-          strides=stride_c2, is_training=is_training, name=name,
-          dropblock_keep_prob=dropblock_keep_probs,
-          drop_connect_rate=drop_connect_rate))
-  inputs = tf.stack(in_list, 1)  # BHWCS
-  return inputs
+          dropblock_keep_prob=dropblock_keep_prob,
+          drop_connect_rate=resnet_layers.get_drop_connect_rate(
+              drop_connect_rate, 2, num_layers))
+      if scale > 0:
+        output = tf.cast(output, tf.float32)
+        if data_format == "channels_first":
+          output = tf.transpose(output, [0, 2, 3, 1])  # BCHW -> BHWC
+        output = tf.image.resize(
+          output,
+          [resize[1], resize[2]],
+          align_corners=True)
+        output = tf.cast(output, dtype)
+        if data_format == "channels_first":
+          output = tf.transpose(output, [0, 3, 1, 2])  # BHWC -> BCHW
+      outputs.append(output)
+  if data_format == "channels_first":
+    outputs = tf.stack(outputs, 1)
+  else:
+    outputs = tf.stack(outputs, -1)
+
+  # Now max-pool at every location
+  kernel = [len(scales), 1, 1]
+  stride = [len(scales), 1, 1]
+  outputs = tf.layers.max_pooling3d(
+    outputs,
+    pool_size=kernel,
+    strides=stride,
+    data_format=data_format)
+  return outputs
 
 
 def norm_activation(
     inputs, is_training, layer=LAYER_BN_RELU, nonlinearity=True,
-    init_zero=False, data_format='channels_first', name=None,
+    init_zero=False, data_format='channels_first',
     bn_momentum=MOVING_AVERAGE_DECAY):
   """Normalization-activation layer."""
   if layer == LAYER_BN_RELU:
@@ -116,7 +127,7 @@ def norm_activation(
 
 
 def batch_norm_relu(inputs, is_training, relu=True, init_zero=False,
-                    data_format='channels_first', name=None,
+                    data_format='channels_first',
                     bn_momentum=MOVING_AVERAGE_DECAY):
   """Performs a batch normalization followed by a ReLU.
 
@@ -152,7 +163,6 @@ def batch_norm_relu(inputs, is_training, relu=True, init_zero=False,
       scale=True,
       training=is_training,
       fused=True,
-      name=name,
       gamma_initializer=gamma_initializer)
 
   if relu:
@@ -434,7 +444,7 @@ def fixed_padding(inputs, kernel_size, data_format='channels_first'):
   return padded_inputs
 
 
-def conv2d_fixed_padding(inputs, filters, kernel_size, strides, name=None,
+def conv2d_fixed_padding(inputs, filters, kernel_size, strides,
                          data_format='channels_first'):
   """Strided 2-D convolution with explicit padding.
 
@@ -458,7 +468,7 @@ def conv2d_fixed_padding(inputs, filters, kernel_size, strides, name=None,
   return tf.layers.conv2d(
       inputs=inputs, filters=filters, kernel_size=kernel_size, strides=strides,
       padding=('SAME' if strides == 1 else 'VALID'), use_bias=False,
-      kernel_initializer=tf.variance_scaling_initializer(), name=name,
+      kernel_initializer=tf.variance_scaling_initializer(),
       data_format=data_format)
 
 
@@ -537,7 +547,7 @@ def residual_block(inputs, filters, is_training, strides,
     return tf.nn.relu(inputs + shortcut)
 
 
-def bottleneck_block(inputs, filters, is_training, strides, name,
+def bottleneck_block(inputs, filters, is_training, strides,
                      use_projection=False, data_format='channels_first',
                      dropblock_keep_prob=None, dropblock_size=None,
                      pre_activation=False, norm_act_layer=LAYER_BN_RELU,
@@ -575,7 +585,7 @@ def bottleneck_block(inputs, filters, is_training, strides, name,
   """
   shortcut = inputs
   if pre_activation:
-    inputs = norm_activation(inputs, is_training, data_format=data_format, name="n0_{}".format(name),
+    inputs = norm_activation(inputs, is_training, data_format=data_format,
                              layer=norm_act_layer, bn_momentum=bn_momentum)
   if use_projection:
     # Projection shortcut only in first block within a group. Bottleneck blocks
@@ -586,16 +596,16 @@ def bottleneck_block(inputs, filters, is_training, strides, name,
           pool_size=(2, 2), strides=(2, 2), padding='same',
           data_format=data_format)(inputs)
       shortcut = conv2d_fixed_padding(
-          inputs=shortcut, filters=filters_out, kernel_size=1, strides=1, name="c0_{}".format(name),
+          inputs=shortcut, filters=filters_out, kernel_size=1, strides=1,
           data_format=data_format)
     else:
       shortcut = conv2d_fixed_padding(
-          inputs=inputs, filters=filters_out, kernel_size=1, strides=strides, name="c0_{}".format(name),
+          inputs=inputs, filters=filters_out, kernel_size=1, strides=strides,
           data_format=data_format)
 
     if not pre_activation:
       shortcut = norm_activation(
-          shortcut, is_training, nonlinearity=False, name="n0_{}".format(name),
+          shortcut, is_training, nonlinearity=False,
           data_format=data_format, layer=norm_act_layer,
           bn_momentum=bn_momentum)
   shortcut = dropblock(
@@ -603,31 +613,31 @@ def bottleneck_block(inputs, filters, is_training, strides, name,
       keep_prob=dropblock_keep_prob, dropblock_size=dropblock_size)
 
   inputs = conv2d_fixed_padding(
-      inputs=inputs, filters=filters, kernel_size=1, strides=1, name="c1_{}".format(name),
+      inputs=inputs, filters=filters, kernel_size=1, strides=1,
       data_format=data_format)
-  inputs = norm_activation(inputs, is_training, data_format=data_format, name="n1_{}".format(name),
+  inputs = norm_activation(inputs, is_training, data_format=data_format,
                            layer=norm_act_layer, bn_momentum=bn_momentum)
   inputs = dropblock(
       inputs, is_training=is_training, data_format=data_format,
       keep_prob=dropblock_keep_prob, dropblock_size=dropblock_size)
 
   inputs = conv2d_fixed_padding(
-      inputs=inputs, filters=filters, kernel_size=3, strides=strides, name="c2_{}".format(name),
+      inputs=inputs, filters=filters, kernel_size=3, strides=strides,
       data_format=data_format)
-  inputs = norm_activation(inputs, is_training, data_format=data_format, name="n2_{}".format(name),
+  inputs = norm_activation(inputs, is_training, data_format=data_format,
                            layer=norm_act_layer, bn_momentum=bn_momentum)
   inputs = dropblock(
       inputs, is_training=is_training, data_format=data_format,
       keep_prob=dropblock_keep_prob, dropblock_size=dropblock_size)
 
   inputs = conv2d_fixed_padding(
-      inputs=inputs, filters=4 * filters, kernel_size=1, strides=1, name="c3_{}".format(name),
+      inputs=inputs, filters=4 * filters, kernel_size=1, strides=1,
       data_format=data_format)
 
   if pre_activation:
     return inputs + shortcut
   else:
-    inputs = norm_activation(inputs, is_training, nonlinearity=False, name="n3_{}".format(name),
+    inputs = norm_activation(inputs, is_training, nonlinearity=False,
                              init_zero=True, data_format=data_format,
                              layer=norm_act_layer, bn_momentum=bn_momentum)
     inputs = dropblock(
@@ -636,7 +646,7 @@ def bottleneck_block(inputs, filters, is_training, strides, name,
 
     if se_ratio is not None and se_ratio > 0 and se_ratio <= 1:
       inputs = resnet_layers.squeeze_excitation(
-          inputs, in_filters=4 * filters, name=name,
+          inputs, in_filters=4 * filters,
           se_ratio=se_ratio, data_format='channels_last')
 
     if drop_connect_rate is not None:
@@ -682,9 +692,7 @@ def block_group(inputs, filters, block_fn, blocks, strides, is_training, name,
     The output `Tensor` of the block layer.
   """
   # Only the first block per block_group uses projection shortcut and strides.
-  # with tf.variable_scope("{}_{}".format(name, 0), reuse=tf.AUTO_REUSE):
   inputs = block_fn(inputs, filters, is_training, strides,
-                    name="{}_{}".format(name, 0),
                     use_projection=True, data_format=data_format,
                     dropblock_keep_prob=dropblock_keep_prob,
                     dropblock_size=dropblock_size,
@@ -695,10 +703,8 @@ def block_group(inputs, filters, block_fn, blocks, strides, is_training, name,
                     drop_connect_rate=drop_connect_rate,
                     bn_momentum=bn_momentum)
 
-  for idx in range(1, blocks):
-    # with tf.variable_scope("{}_{}".format(name, idx), reuse=tf.AUTO_REUSE):
+  for _ in range(1, blocks):
     inputs = block_fn(inputs, filters, is_training, 1,
-                      name="{}_{}".format(name, idx),
                       data_format=data_format,
                       dropblock_keep_prob=dropblock_keep_prob,
                       dropblock_size=dropblock_size,
@@ -708,6 +714,7 @@ def block_group(inputs, filters, block_fn, blocks, strides, is_training, name,
                       resnetd_shortcut=resnetd_shortcut,
                       drop_connect_rate=drop_connect_rate,
                       bn_momentum=bn_momentum)
+
   return tf.identity(inputs, name)
 
 
@@ -725,8 +732,8 @@ def resnet_generator(block_fn,
                      dropblock_keep_probs=None,
                      dropblock_size=None,
                      pre_activation=False,
-                     norm_act_layer=LAYER_BN_RELU,
                      scales=4,
+                     norm_act_layer=LAYER_BN_RELU,
                      bn_momentum=MOVING_AVERAGE_DECAY):
   """Generator for ResNet models.
 
@@ -771,19 +778,45 @@ def resnet_generator(block_fn,
 
   def model(inputs, is_training):
     """Creation of the model graph."""
-    inputs = conv2d_fixed_padding(
-        inputs=inputs, filters=64, kernel_size=7, strides=1,
-        data_format=data_format)
+    if use_resnetd_stem:
+      inputs = conv2d_fixed_padding(
+          inputs=inputs, filters=32, kernel_size=3, strides=2,
+          data_format=data_format)
+      inputs = norm_activation(
+          inputs, is_training, data_format=data_format,
+          layer=norm_act_layer, bn_momentum=bn_momentum)
+      inputs = conv2d_fixed_padding(
+          inputs=inputs, filters=32, kernel_size=3, strides=1,
+          data_format=data_format)
+      inputs = norm_activation(
+          inputs, is_training, data_format=data_format,
+          layer=norm_act_layer, bn_momentum=bn_momentum)
+      inputs = conv2d_fixed_padding(
+          inputs=inputs, filters=64, kernel_size=3, strides=1,
+          data_format=data_format)
+    else:
+      inputs = conv2d_fixed_padding(
+          inputs=inputs, filters=64, kernel_size=7, strides=2,
+          data_format=data_format)
 
     inputs = tf.identity(inputs, 'initial_conv')
     if not pre_activation:
       inputs = norm_activation(inputs, is_training, data_format=data_format,
                                layer=norm_act_layer, bn_momentum=bn_momentum)
 
-    inputs = tf.layers.max_pooling2d(
-        inputs=inputs, pool_size=3, strides=2, padding='SAME',
-        data_format=data_format)
-    inputs = tf.identity(inputs, 'initial_max_pool')
+    if not skip_stem_max_pool:
+      if replace_stem_max_pool:
+        inputs = conv2d_fixed_padding(
+            inputs=inputs, filters=64,
+            kernel_size=3, strides=2, data_format=data_format)
+        inputs = norm_activation(
+            inputs, is_training, data_format=data_format,
+            bn_momentum=bn_momentum)
+      else:
+        inputs = tf.layers.max_pooling2d(
+            inputs=inputs, pool_size=3, strides=2, padding='SAME',
+            data_format=data_format)
+        inputs = tf.identity(inputs, 'initial_max_pool')
 
     custom_block_group = functools.partial(
         block_group,
@@ -796,121 +829,65 @@ def resnet_generator(block_fn,
         bn_momentum=bn_momentum)
 
     num_layers = len(layers) + 1
-    stride_c2 = 1  #  if skip_stem_max_pool else 1
+    stride_c2 = 2 if skip_stem_max_pool else 1
 
-    ## Block S1/C1
-    c1 = tf.identity(inputs)
-    inputs = scale_invariance(
-      inputs=c1,
+    # Multiscale feature extractions
+    inputs = multiscale(
+      inputs=inputs,
+      data_format=data_format,
       scales=scales,
-      is_training=is_training,
-      block_fn=block_fn,
-      layers=layers[0],
-      name='block_group1',
+      custom_block_group=custom_block_group,
       filters=64,
-      drop_connect_rate=resnet_layers.get_drop_connect_rate(
-        drop_connect_rate, 2, num_layers),
-      dropblock_keep_probs=dropblock_keep_probs[0],
-      stride_c2=stride_c2,
-      custom_block_group=custom_block_group,
-      data_format=data_format)
-    inputs = tf.layers.max_pooling3d(
-        inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
-        data_format=data_format)
-    inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
-
-    ## Block S2b
-    c2b = scale_invariance(
-      inputs=c1,
-      scales=scales,
-      is_training=is_training,
       block_fn=block_fn,
-      layers=layers[0],
-      name='block_groups2b',
-      filters=128,
-      drop_connect_rate=resnet_layers.get_drop_connect_rate(
-        drop_connect_rate, 2, num_layers),
-      dropblock_keep_probs=dropblock_keep_probs[0],
+      layer=layers[0],
       stride_c2=stride_c2,
-      custom_block_group=custom_block_group,
-      data_format=data_format)
-    c2b = tf.layers.max_pooling3d(
-        inputs=c2b, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
-        data_format=data_format)
-    c2b = tf.squeeze(c2b, 1)  # Squeeze the last dim
-
-    ## Block S2/C2
-    inputs = scale_invariance(
+      is_training=is_training,
+      name='block_group1',
+      dropblock_keep_prob=dropblock_keep_probs[0],
+      drop_connect_rate=resnet_layers.get_drop_connect_rate(
+        drop_connect_rate, 2, num_layers))
+    inputs = multiscale(
       inputs=inputs,
+      data_format=data_format,
       scales=scales,
-      is_training=is_training,
+      custom_block_group=custom_block_group,
+      filters=128,
       block_fn=block_fn,
-      layers=layers[1],
+      layer=layers[1],
+      stride_c2=stride_c2,
+      is_training=is_training,
       name='block_group2',
-      filters=128,
+      dropblock_keep_prob=dropblock_keep_probs[1],
       drop_connect_rate=resnet_layers.get_drop_connect_rate(
-        drop_connect_rate, 3, num_layers),
-      dropblock_keep_probs=dropblock_keep_probs[1],
-      stride_c2=stride_c2,
-      custom_block_group=custom_block_group,
-      data_format=data_format)
-    inputs = tf.layers.max_pooling3d(
-        inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
-        data_format=data_format)
-    inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
-    c2 = tf.identity(inputs)
-
-    ## Block S3/C3
-    inputs = scale_invariance(
+        drop_connect_rate, 3, num_layers))
+    inputs = multiscale(
       inputs=inputs,
+      data_format=data_format,
       scales=scales,
-      is_training=is_training,
-      block_fn=block_fn,
-      layers=layers[2],
-      name='block_group3',
+      custom_block_group=custom_block_group,
       filters=256,
-      drop_connect_rate=resnet_layers.get_drop_connect_rate(
-        drop_connect_rate, 4, num_layers),
-      dropblock_keep_probs=dropblock_keep_probs[2],
-      stride_c2=stride_c2,
-      custom_block_group=custom_block_group,
-      data_format=data_format)
-    inputs = tf.layers.max_pooling3d(
-        inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
-        data_format=data_format)
-    inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
-
-    # Prep C3 for merge
-    merge_size = c2b.get_shape().as_list()
-    inputs = tf.cast(inputs, tf.float32)
-    inputs = tf.image.resize(inputs, merge_size[1:3], align_corners=True, method=RESIZE_METHOD)
-    inputs = tf.cast(inputs, c2b.dtype)
-    c2 = tf.cast(c2, tf.float32)
-    c2 = tf.image.resize(c2, merge_size[1:3], align_corners=True, method=RESIZE_METHOD)
-    c2 = tf.cast(c2, c2b.dtype)
-
-    # Merge C2 and C2b with C3
-    inputs = tf.concat([inputs, c2, c2b], -1)
-
-    ## Block S4/C4
-    inputs = scale_invariance(
-      inputs=inputs,
-      scales=scales,
-      is_training=is_training,
       block_fn=block_fn,
-      layers=layers[3],
-      name='block_group4',
-      filters=512,  # Inception-style merge for C2->S4
-      drop_connect_rate=resnet_layers.get_drop_connect_rate(
-        drop_connect_rate, 5, num_layers),
-      dropblock_keep_probs=dropblock_keep_probs[3],
+      layer=layers[2],
       stride_c2=stride_c2,
+      is_training=is_training,
+      name='block_group3',
+      dropblock_keep_prob=dropblock_keep_probs[2],
+      drop_connect_rate=resnet_layers.get_drop_connect_rate(
+        drop_connect_rate, 4, num_layers))
+    inputs = multiscale(
+      inputs=inputs,
+      data_format=data_format,
+      scales=scales,
       custom_block_group=custom_block_group,
-      data_format=data_format)
-    inputs = tf.layers.max_pooling3d(
-        inputs=inputs, pool_size=(scales, 2, 2), strides=(scales, 2, 2), padding='SAME',
-        data_format=data_format)
-    inputs = tf.squeeze(inputs, 1)  # Squeeze the last dim
+      filters=512,
+      block_fn=block_fn,
+      layer=layers[3],
+      stride_c2=stride_c2,
+      is_training=is_training,
+      name='block_group4',
+      dropblock_keep_prob=dropblock_keep_probs[3],
+      drop_connect_rate=resnet_layers.get_drop_connect_rate(
+        drop_connect_rate, 5, num_layers))
 
     if pre_activation:
       inputs = norm_activation(inputs, is_training, data_format=data_format,
@@ -940,6 +917,7 @@ def resnet_generator(block_fn,
         kernel_initializer=tf.random_normal_initializer(stddev=.01))
     inputs = tf.identity(inputs, 'final_dense')
     return inputs
+
   model.default_image_size = 224
   return model
 
