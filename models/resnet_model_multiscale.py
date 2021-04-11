@@ -78,8 +78,7 @@ def multiscale(
           inputs=inputs, filters=filters, block_fn=block_fn, blocks=layer,
           strides=stride_c2, is_training=is_training, name=name,
           dropblock_keep_prob=dropblock_keep_prob,
-          drop_connect_rate=resnet_layers.get_drop_connect_rate(
-              drop_connect_rate, 2, num_layers))
+          drop_connect_rate=drop_connect_rate)
       if scale > 0:
         output = tf.cast(output, tf.float32)
         if data_format == "channels_first":
@@ -97,7 +96,7 @@ def multiscale(
   else:
     outputs = tf.stack(outputs, -1)
 
-  # Now max-pool at every location
+  # Now max-pool at every location (alternatively try a 1x1 conv)
   kernel = [len(scales), 1, 1]
   stride = [len(scales), 1, 1]
   outputs = tf.layers.max_pooling3d(
