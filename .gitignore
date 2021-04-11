@@ -1,5 +1,6 @@
 __pycache__/
 
+*.npz
 tpu_list.json
 current_job.txt
 logs/
