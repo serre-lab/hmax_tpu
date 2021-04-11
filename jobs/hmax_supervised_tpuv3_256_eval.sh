@@ -10,13 +10,12 @@ eval_batch_size=1024
 # train_steps=3558
 # iterations_per_loop=2558
 # skip_host_call=True
-num_cores=1
 # enable_lars=False
 # label_smoothing=0.1
 
-experiment_name=$1  # finetune_BU_{bu_loss}_TD_{td_loss}_R50_lr0.1_T0.1
-tpu_name=$2
-model_script=$3
+experiment_name=hmax_skips_tpuv3_256  # finetune_BU_{bu_loss}_TD_{td_loss}_R50_lr0.1_T0.1
+tpu_name=l-v3-8-1
+model_script=hmax_model_skips
 export TPU_NAME=$tpu_name  # 'prj-selfsup-tpu'
 export STORAGE_BUCKET='gs://serrelab'
 DATA_DIR=gs://imagenet_data/train/
@@ -35,7 +34,7 @@ python3 main.py \
   --eval_batch_size=$eval_batch_size\
   --resnet_depth=$resnet_depth\
   --model_script=$model_script\
-  --num_cores=$num_cores
+  # --num_cores=$num_cores
   # --skip_host_call
 
   # --train_steps=$train_steps\
