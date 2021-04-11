@@ -97,8 +97,8 @@ def multiscale(
     outputs = tf.stack(outputs, -1)
 
   # Now max-pool at every location (alternatively try a 1x1 conv)
-  kernel = [len(scales), 1, 1]
-  stride = [len(scales), 1, 1]
+  kernel = [scales, 1, 1]
+  stride = [scales, 1, 1]
   outputs = tf.layers.max_pooling3d(
     outputs,
     pool_size=kernel,
