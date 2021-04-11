@@ -10,7 +10,7 @@ eval_batch_size=1024
 # train_steps=3558
 # iterations_per_loop=2558
 # skip_host_call=True
-num_cores=256
+num_cores=1
 # enable_lars=False
 # label_smoothing=0.1
 
