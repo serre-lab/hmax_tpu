@@ -92,7 +92,7 @@ def multiscale(
           output = tf.transpose(output, [0, 3, 1, 2])  # BHWC -> BCHW
       outputs.append(output)
   if data_format == "channels_first":
-    outputs = tf.stack(outputs, 1)
+    outputs = tf.stack(outputs, 2)
   else:
     outputs = tf.stack(outputs, -1)
 
