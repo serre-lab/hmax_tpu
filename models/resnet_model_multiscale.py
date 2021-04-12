@@ -64,22 +64,22 @@ def multiscale(
   outputs = []
   tf.logging.info('Multiscale on layer: {}'.format(name))
   tf.logging.info('*' * 30)
+  pre_res_inputs = tf.cast(inputs, tf.float32)
+  if data_format == "channels_first":
+      pre_res_inputs = tf.transpose(pre_res_inputs, [0, 2, 3, 1])  # BCHW -> BHWC
   for scale in range(scales):
       if scale > 0:
           tf.logging.info('Scale {}'.format(scale))
-          inputs = tf.cast(inputs, tf.float32)
-          if data_format == "channels_first":
-              inputs = tf.transpose(inputs, [0, 2, 3, 1])  # BCHW -> BHWC
-          inputs = tf.image.resize(
-              inputs,
+          res_inputs = tf.image.resize(
+              pre_res_inputs,
               [resize[1] // (scale + 1), resize[2] // (scale + 1)],
               align_corners=True)
-          inputs = tf.cast(inputs, dtype)
-          tf.logging.info('input resize shape {}'.format(inputs.shape))
+          res_inputs = tf.cast(res_inputs, dtype)
+          tf.logging.info('input resize shape {}'.format(res_inputs.shape))
           if data_format == "channels_first":
-              inputs = tf.transpose(inputs, [0, 3, 1, 2])  # BHWC -> BCHW
+              res_inputs = tf.transpose(res_inputs, [0, 3, 1, 2])  # BHWC -> BCHW
       output = custom_block_group(
-          inputs=inputs, filters=filters, block_fn=block_fn, blocks=layer,
+          inputs=res_inputs, filters=filters, block_fn=block_fn, blocks=layer,
           strides=stride_c2, is_training=is_training, name=name, scope_name=scope_name,
           dropblock_keep_prob=dropblock_keep_prob,
           drop_connect_rate=drop_connect_rate)
