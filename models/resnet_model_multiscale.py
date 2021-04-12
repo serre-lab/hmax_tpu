@@ -55,7 +55,8 @@ def multiscale(
     name,
     scope_name,
     dropblock_keep_prob,
-    drop_connect_rate):
+    drop_connect_rate,
+    pool_scales=False):
   resize = inputs.get_shape().as_list()
   if data_format == "channels_first":
       resize = [resize[0], resize[2], resize[3], resize[1]]  # BHWC
