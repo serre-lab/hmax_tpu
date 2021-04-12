@@ -42,7 +42,6 @@ LAYER_EVONORMS = [
 ]
 
 
-
 def multiscale(
     inputs,
     data_format,
@@ -95,23 +94,33 @@ def multiscale(
           if data_format == "channels_first":
               output = tf.transpose(output, [0, 3, 1, 2])  # BHWC -> BCHW
       outputs.append(output)
-  if data_format == "channels_first":
-      outputs = tf.stack(outputs, 2)
-  else:
-      outputs = tf.stack(outputs, 1)
 
   # Now max-pool at every location (alternatively try a 1x1 conv)
-  kernel = [scales, 1, 1]
-  stride = [scales, 1, 1]
-  outputs = tf.layers.max_pooling3d(
-    outputs,
-    pool_size=kernel,
-    strides=stride,
-    data_format=data_format)
-  if data_format == "channels_first":
-    outputs = tf.squeeze(outputs, 2)
+  if pool_scales:
+      if data_format == "channels_first":
+          outputs = tf.stack(outputs, 2)
+      else:
+          outputs = tf.stack(outputs, 1)
+      kernel = [scales, 1, 1]
+      stride = [scales, 1, 1]
+      outputs = tf.layers.max_pooling3d(
+        outputs,
+        pool_size=kernel,
+        strides=stride,
+        data_format=data_format)
   else:
-    outputs = tf.squeeze(outputs, 1)
+      if data_format == "channels_first":
+          outputs = tf.concat(outputs, 1)
+      else:
+          outputs = tf.concat(outputs, -1)
+      outputs = tf.nn.relu(
+          conv2d_fixed_padding(
+              outputs,
+              filters=filters,
+              kernel_size=1,
+              strides=1,
+              name='{}_merge'.format(name),
+              data_format=data_format))
   return outputs
 
 
