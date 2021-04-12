@@ -54,6 +54,7 @@ def multiscale(
     stride_c2,
     is_training,
     name,
+    scope_name,
     dropblock_keep_prob,
     drop_connect_rate):
   resize = inputs.get_shape().as_list()
@@ -61,7 +62,7 @@ def multiscale(
     resize = [resize[0], resize[2], resize[3], resize[1]]  # BHWC
   dtype = inputs.dtype
   outputs = []
-  with tf.variable_scope("multiscale", reuse=tf.AUTO_REUSE):
+  with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE):
     for scale in range(scales):
       if scale > 0:
         inputs = tf.cast(inputs, tf.float32)
@@ -112,13 +113,13 @@ def multiscale(
 
 
 def norm_activation(
-    inputs, is_training, layer=LAYER_BN_RELU, nonlinearity=True,
+    inputs, is_training, name, layer=LAYER_BN_RELU, nonlinearity=True,
     init_zero=False, data_format='channels_first',
     bn_momentum=MOVING_AVERAGE_DECAY):
   """Normalization-activation layer."""
   if layer == LAYER_BN_RELU:
     return batch_norm_relu(
-        inputs, is_training, relu=nonlinearity,
+        inputs, is_training, name=name, relu=nonlinearity,
         init_zero=init_zero, data_format=data_format,
         bn_momentum=bn_momentum)
   elif layer in LAYER_EVONORMS:
@@ -129,7 +130,7 @@ def norm_activation(
     raise ValueError('Unknown normalization-activation layer: {}'.format(layer))
 
 
-def batch_norm_relu(inputs, is_training, relu=True, init_zero=False,
+def batch_norm_relu(inputs, is_training, name, relu=True, init_zero=False,
                     data_format='channels_first',
                     bn_momentum=MOVING_AVERAGE_DECAY):
   """Performs a batch normalization followed by a ReLU.
@@ -160,6 +161,7 @@ def batch_norm_relu(inputs, is_training, relu=True, init_zero=False,
   inputs = tf.layers.batch_normalization(
       inputs=inputs,
       axis=axis,
+      name=name,
       momentum=bn_momentum,
       epsilon=EPSILON,
       center=True,
@@ -447,7 +449,7 @@ def fixed_padding(inputs, kernel_size, data_format='channels_first'):
   return padded_inputs
 
 
-def conv2d_fixed_padding(inputs, filters, kernel_size, strides,
+def conv2d_fixed_padding(inputs, filters, kernel_size, strides, name,
                          data_format='channels_first'):
   """Strided 2-D convolution with explicit padding.
 
@@ -472,7 +474,7 @@ def conv2d_fixed_padding(inputs, filters, kernel_size, strides,
       inputs=inputs, filters=filters, kernel_size=kernel_size, strides=strides,
       padding=('SAME' if strides == 1 else 'VALID'), use_bias=False,
       kernel_initializer=tf.variance_scaling_initializer(),
-      data_format=data_format)
+      data_format=data_format, name=name)
 
 
 def residual_block(inputs, filters, is_training, strides,
@@ -589,7 +591,8 @@ def bottleneck_block(inputs, filters, is_training, strides,
   shortcut = inputs
   if pre_activation:
     inputs = norm_activation(inputs, is_training, data_format=data_format,
-                             layer=norm_act_layer, bn_momentum=bn_momentum)
+                             layer=norm_act_layer, bn_momentum=bn_momentum,
+                             name="norm0")
   if use_projection:
     # Projection shortcut only in first block within a group. Bottleneck blocks
     # end with 4 times the number of filters.
@@ -600,49 +603,52 @@ def bottleneck_block(inputs, filters, is_training, strides,
           data_format=data_format)(inputs)
       shortcut = conv2d_fixed_padding(
           inputs=shortcut, filters=filters_out, kernel_size=1, strides=1,
-          data_format=data_format)
+          data_format=data_format, name="conv0")
     else:
       shortcut = conv2d_fixed_padding(
           inputs=inputs, filters=filters_out, kernel_size=1, strides=strides,
-          data_format=data_format)
+          data_format=data_format, name="conv0")
 
     if not pre_activation:
       shortcut = norm_activation(
           shortcut, is_training, nonlinearity=False,
           data_format=data_format, layer=norm_act_layer,
-          bn_momentum=bn_momentum)
+          bn_momentum=bn_momentum, name="norm0")
   shortcut = dropblock(
       shortcut, is_training=is_training, data_format=data_format,
       keep_prob=dropblock_keep_prob, dropblock_size=dropblock_size)
 
   inputs = conv2d_fixed_padding(
       inputs=inputs, filters=filters, kernel_size=1, strides=1,
-      data_format=data_format)
+      data_format=data_format, name="conv1")
   inputs = norm_activation(inputs, is_training, data_format=data_format,
-                           layer=norm_act_layer, bn_momentum=bn_momentum)
+                           layer=norm_act_layer, bn_momentum=bn_momentum,
+                           name="norm1")
   inputs = dropblock(
       inputs, is_training=is_training, data_format=data_format,
       keep_prob=dropblock_keep_prob, dropblock_size=dropblock_size)
 
   inputs = conv2d_fixed_padding(
       inputs=inputs, filters=filters, kernel_size=3, strides=strides,
-      data_format=data_format)
+      data_format=data_format, name="conv2")
   inputs = norm_activation(inputs, is_training, data_format=data_format,
-                           layer=norm_act_layer, bn_momentum=bn_momentum)
+                           layer=norm_act_layer, bn_momentum=bn_momentum,
+                           name="norm2")
   inputs = dropblock(
       inputs, is_training=is_training, data_format=data_format,
       keep_prob=dropblock_keep_prob, dropblock_size=dropblock_size)
 
   inputs = conv2d_fixed_padding(
       inputs=inputs, filters=4 * filters, kernel_size=1, strides=1,
-      data_format=data_format)
+      data_format=data_format, name="conv3")
 
   if pre_activation:
     return inputs + shortcut
   else:
     inputs = norm_activation(inputs, is_training, nonlinearity=False,
                              init_zero=True, data_format=data_format,
-                             layer=norm_act_layer, bn_momentum=bn_momentum)
+                             layer=norm_act_layer, bn_momentum=bn_momentum,
+                             name="norm3")
     inputs = dropblock(
         inputs, is_training=is_training, data_format=data_format,
         keep_prob=dropblock_keep_prob, dropblock_size=dropblock_size)
@@ -846,6 +852,7 @@ def resnet_generator(block_fn,
       stride_c2=stride_c2,
       is_training=is_training,
       name='block_group1',
+      scope_name='multiscale1',
       dropblock_keep_prob=dropblock_keep_probs[0],
       drop_connect_rate=resnet_layers.get_drop_connect_rate(
         drop_connect_rate, 2, num_layers))
@@ -860,6 +867,7 @@ def resnet_generator(block_fn,
       stride_c2=stride_c2,
       is_training=is_training,
       name='block_group2',
+      scope_name='multiscale2',
       dropblock_keep_prob=dropblock_keep_probs[1],
       drop_connect_rate=resnet_layers.get_drop_connect_rate(
         drop_connect_rate, 3, num_layers))
@@ -874,6 +882,7 @@ def resnet_generator(block_fn,
       stride_c2=stride_c2,
       is_training=is_training,
       name='block_group3',
+      scope_name='multiscale3',
       dropblock_keep_prob=dropblock_keep_probs[2],
       drop_connect_rate=resnet_layers.get_drop_connect_rate(
         drop_connect_rate, 4, num_layers))
@@ -888,6 +897,7 @@ def resnet_generator(block_fn,
       stride_c2=stride_c2,
       is_training=is_training,
       name='block_group4',
+      scope_name='multiscale4',
       dropblock_keep_prob=dropblock_keep_probs[3],
       drop_connect_rate=resnet_layers.get_drop_connect_rate(
         drop_connect_rate, 5, num_layers))
