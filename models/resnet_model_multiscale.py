@@ -113,6 +113,10 @@ def multiscale(
         pool_size=kernel,
         strides=stride,
         data_format=data_format)
+      if data_format == "channels_first":
+          outputs = tf.squeeze(outputs, 2)
+      else:
+          outputs = tf.squeeze(outputs, 1)
   else:
       if data_format == "channels_first":
           outputs = tf.concat(outputs, 1)
