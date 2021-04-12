@@ -121,13 +121,20 @@ def multiscale(
           outputs = tf.squeeze(outputs, 1)
   else:
       outputs = tf.nn.relu(
-          tf.layers.Conv3D(
-              outputs,
+          tf.layers.conv3d(
+              inputs=outputs,
               filters=filters,
               kernel_size=kernel,
               strides=stride,
+              padding='SAME',
               name='{}_merge'.format(name),
               data_format=data_format))
+  return tf.layers.conv2d(
+      inputs=inputs, filters=filters, kernel_size=kernel_size, strides=strides,
+      padding=('SAME' if strides == 1 else 'VALID'), use_bias=False,
+      kernel_initializer=tf.variance_scaling_initializer(),
+      data_format=data_format, name=name)
+
       if data_format == "channels_first":
           outputs = tf.squeeze(outputs, 2)
       else:
