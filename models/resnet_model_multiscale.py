@@ -65,6 +65,7 @@ def multiscale(
   with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE):
     for scale in range(scales):
       if scale > 0:
+        tf.logging.info('Scale {}'.format(scale))
         inputs = tf.cast(inputs, tf.float32)
         if data_format == "channels_first":
           inputs = tf.transpose(inputs, [0, 2, 3, 1])  # BCHW -> BHWC
@@ -73,6 +74,7 @@ def multiscale(
           [resize[1] // (scale + 1), resize[2] // (scale + 1)],
           align_corners=True)
         inputs = tf.cast(inputs, dtype)
+        tf.logging.info('input resize shape {}'.format(inputs.shape))
         if data_format == "channels_first":
           inputs = tf.transpose(inputs, [0, 3, 1, 2])  # BHWC -> BCHW
       output = custom_block_group(
@@ -80,6 +82,7 @@ def multiscale(
           strides=stride_c2, is_training=is_training, name=name,
           dropblock_keep_prob=dropblock_keep_prob,
           drop_connect_rate=drop_connect_rate)
+      tf.logging.info('output shape {}'.format(output.shape))
       if scale > 0:
         output = tf.cast(output, tf.float32)
         if data_format == "channels_first":
@@ -88,6 +91,7 @@ def multiscale(
           output,
           [resize[1], resize[2]],
           align_corners=True)
+        tf.logging.info('output resize shape {}'.format(output.shape))
         output = tf.cast(output, dtype)
         if data_format == "channels_first":
           output = tf.transpose(output, [0, 3, 1, 2])  # BHWC -> BCHW
