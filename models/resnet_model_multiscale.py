@@ -94,7 +94,7 @@ def multiscale(
   if data_format == "channels_first":
     outputs = tf.stack(outputs, 2)
   else:
-    outputs = tf.stack(outputs, -1)
+    outputs = tf.stack(outputs, 1)
 
   # Now max-pool at every location (alternatively try a 1x1 conv)
   kernel = [scales, 1, 1]
