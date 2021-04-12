@@ -790,37 +790,41 @@ def resnet_generator(block_fn,
     if use_resnetd_stem:
       inputs = conv2d_fixed_padding(
           inputs=inputs, filters=32, kernel_size=3, strides=2,
-          data_format=data_format)
+          data_format=data_format, name="init_conv_0")
       inputs = norm_activation(
           inputs, is_training, data_format=data_format,
-          layer=norm_act_layer, bn_momentum=bn_momentum)
+          layer=norm_act_layer, bn_momentum=bn_momentum,
+          name="init_norm_0")
       inputs = conv2d_fixed_padding(
           inputs=inputs, filters=32, kernel_size=3, strides=1,
-          data_format=data_format)
+          data_format=data_format, name="init_conv_1")
       inputs = norm_activation(
           inputs, is_training, data_format=data_format,
-          layer=norm_act_layer, bn_momentum=bn_momentum)
+          layer=norm_act_layer, bn_momentum=bn_momentum,
+          name="init_norm_1")
       inputs = conv2d_fixed_padding(
           inputs=inputs, filters=64, kernel_size=3, strides=1,
-          data_format=data_format)
+          data_format=data_format, name="init_conv_2")
     else:
       inputs = conv2d_fixed_padding(
           inputs=inputs, filters=64, kernel_size=7, strides=2,
-          data_format=data_format)
+          data_format=data_format, name="init_conv_0")
 
     inputs = tf.identity(inputs, 'initial_conv')
     if not pre_activation:
       inputs = norm_activation(inputs, is_training, data_format=data_format,
-                               layer=norm_act_layer, bn_momentum=bn_momentum)
+                               layer=norm_act_layer, bn_momentum=bn_momentum,
+                               name="init_norm_2")
 
     if not skip_stem_max_pool:
       if replace_stem_max_pool:
         inputs = conv2d_fixed_padding(
             inputs=inputs, filters=64,
-            kernel_size=3, strides=2, data_format=data_format)
+            kernel_size=3, strides=2, data_format=data_format,
+            name="init_conv_3")
         inputs = norm_activation(
             inputs, is_training, data_format=data_format,
-            bn_momentum=bn_momentum)
+            bn_momentum=bn_momentum, name="init_norm_3")
       else:
         inputs = tf.layers.max_pooling2d(
             inputs=inputs, pool_size=3, strides=2, padding='SAME',
@@ -842,65 +846,65 @@ def resnet_generator(block_fn,
 
     # Multiscale feature extractions
     inputs = multiscale(
-      inputs=inputs,
-      data_format=data_format,
-      scales=scales,
-      custom_block_group=custom_block_group,
-      filters=64,
-      block_fn=block_fn,
-      layer=layers[0],
-      stride_c2=stride_c2,
-      is_training=is_training,
-      name='block_group1',
-      scope_name='multiscale1',
-      dropblock_keep_prob=dropblock_keep_probs[0],
-      drop_connect_rate=resnet_layers.get_drop_connect_rate(
-        drop_connect_rate, 2, num_layers))
+        inputs=inputs,
+        data_format=data_format,
+        scales=scales,
+        custom_block_group=custom_block_group,
+        filters=64,
+        block_fn=block_fn,
+        layer=layers[0],
+        stride_c2=stride_c2,
+        is_training=is_training,
+        name='block_group1',
+        scope_name='multiscale1',
+        dropblock_keep_prob=dropblock_keep_probs[0],
+        drop_connect_rate=resnet_layers.get_drop_connect_rate(
+            drop_connect_rate, 2, num_layers))
     inputs = multiscale(
-      inputs=inputs,
-      data_format=data_format,
-      scales=scales,
-      custom_block_group=custom_block_group,
-      filters=128,
-      block_fn=block_fn,
-      layer=layers[1],
-      stride_c2=stride_c2,
-      is_training=is_training,
-      name='block_group2',
-      scope_name='multiscale2',
-      dropblock_keep_prob=dropblock_keep_probs[1],
-      drop_connect_rate=resnet_layers.get_drop_connect_rate(
-        drop_connect_rate, 3, num_layers))
+        inputs=inputs,
+        data_format=data_format,
+        scales=scales,
+        custom_block_group=custom_block_group,
+        filters=128,
+        block_fn=block_fn,
+        layer=layers[1],
+        stride_c2=stride_c2,
+        is_training=is_training,
+        name='block_group2',
+        scope_name='multiscale2',
+        dropblock_keep_prob=dropblock_keep_probs[1],
+        drop_connect_rate=resnet_layers.get_drop_connect_rate(
+            drop_connect_rate, 3, num_layers))
     inputs = multiscale(
-      inputs=inputs,
-      data_format=data_format,
-      scales=scales,
-      custom_block_group=custom_block_group,
-      filters=256,
-      block_fn=block_fn,
-      layer=layers[2],
-      stride_c2=stride_c2,
-      is_training=is_training,
-      name='block_group3',
-      scope_name='multiscale3',
-      dropblock_keep_prob=dropblock_keep_probs[2],
-      drop_connect_rate=resnet_layers.get_drop_connect_rate(
-        drop_connect_rate, 4, num_layers))
+        inputs=inputs,
+        data_format=data_format,
+        scales=scales,
+        custom_block_group=custom_block_group,
+        filters=256,
+        block_fn=block_fn,
+        layer=layers[2],
+        stride_c2=stride_c2,
+        is_training=is_training,
+        name='block_group3',
+        scope_name='multiscale3',
+        dropblock_keep_prob=dropblock_keep_probs[2],
+        drop_connect_rate=resnet_layers.get_drop_connect_rate(
+            drop_connect_rate, 4, num_layers))
     inputs = multiscale(
-      inputs=inputs,
-      data_format=data_format,
-      scales=scales,
-      custom_block_group=custom_block_group,
-      filters=512,
-      block_fn=block_fn,
-      layer=layers[3],
-      stride_c2=stride_c2,
-      is_training=is_training,
-      name='block_group4',
-      scope_name='multiscale4',
-      dropblock_keep_prob=dropblock_keep_probs[3],
-      drop_connect_rate=resnet_layers.get_drop_connect_rate(
-        drop_connect_rate, 5, num_layers))
+        inputs=inputs,
+        data_format=data_format,
+        scales=scales,
+        custom_block_group=custom_block_group,
+        filters=512,
+        block_fn=block_fn,
+        layer=layers[3],
+        stride_c2=stride_c2,
+        is_training=is_training,
+        name='block_group4',
+        scope_name='multiscale4',
+        dropblock_keep_prob=dropblock_keep_probs[3],
+        drop_connect_rate=resnet_layers.get_drop_connect_rate(
+            drop_connect_rate, 5, num_layers))
 
     if pre_activation:
       inputs = norm_activation(inputs, is_training, data_format=data_format,
