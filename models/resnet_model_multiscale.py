@@ -127,6 +127,8 @@ def multiscale(
   outputs = tf.layers.max_pooling2d(
       inputs=outputs, pool_size=2, strides=2, padding='SAME',
       data_format=data_format)
+  tf.logging.info('Pooled output shape {}'.format(outputs.shape))
+  tf.logging.info('*' * 30)
   return outputs
 
 
