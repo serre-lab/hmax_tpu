@@ -78,6 +78,8 @@ def multiscale(
           tf.logging.info('input resize shape {}'.format(res_inputs.shape))
           if data_format == "channels_first":
               res_inputs = tf.transpose(res_inputs, [0, 3, 1, 2])  # BHWC -> BCHW
+      else:
+        res_inputs = tf.identity(inputs)
       output = custom_block_group(
           inputs=res_inputs, filters=filters, block_fn=block_fn, blocks=layer,
           strides=stride_c2, is_training=is_training, name=name, scope_name=scope_name,
