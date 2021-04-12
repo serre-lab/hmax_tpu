@@ -59,47 +59,46 @@ def multiscale(
     drop_connect_rate):
   resize = inputs.get_shape().as_list()
   if data_format == "channels_first":
-    resize = [resize[0], resize[2], resize[3], resize[1]]  # BHWC
+      resize = [resize[0], resize[2], resize[3], resize[1]]  # BHWC
   dtype = inputs.dtype
   outputs = []
-  with tf.variable_scope(scope_name, reuse=tf.AUTO_REUSE):
-    for scale in range(scales):
+  for scale in range(scales):
       if scale > 0:
-        tf.logging.info('Scale {}'.format(scale))
-        inputs = tf.cast(inputs, tf.float32)
-        if data_format == "channels_first":
-          inputs = tf.transpose(inputs, [0, 2, 3, 1])  # BCHW -> BHWC
-        inputs = tf.image.resize(
-          inputs,
-          [resize[1] // (scale + 1), resize[2] // (scale + 1)],
-          align_corners=True)
-        inputs = tf.cast(inputs, dtype)
-        tf.logging.info('input resize shape {}'.format(inputs.shape))
-        if data_format == "channels_first":
-          inputs = tf.transpose(inputs, [0, 3, 1, 2])  # BHWC -> BCHW
+          tf.logging.info('Scale {}'.format(scale))
+          inputs = tf.cast(inputs, tf.float32)
+          if data_format == "channels_first":
+              inputs = tf.transpose(inputs, [0, 2, 3, 1])  # BCHW -> BHWC
+          inputs = tf.image.resize(
+              inputs,
+              [resize[1] // (scale + 1), resize[2] // (scale + 1)],
+              align_corners=True)
+          inputs = tf.cast(inputs, dtype)
+          tf.logging.info('input resize shape {}'.format(inputs.shape))
+          if data_format == "channels_first":
+              inputs = tf.transpose(inputs, [0, 3, 1, 2])  # BHWC -> BCHW
       output = custom_block_group(
           inputs=inputs, filters=filters, block_fn=block_fn, blocks=layer,
-          strides=stride_c2, is_training=is_training, name=name,
+          strides=stride_c2, is_training=is_training, name=name, scope_name=scope_name,
           dropblock_keep_prob=dropblock_keep_prob,
           drop_connect_rate=drop_connect_rate)
       tf.logging.info('output shape {}'.format(output.shape))
       if scale > 0:
-        output = tf.cast(output, tf.float32)
-        if data_format == "channels_first":
-          output = tf.transpose(output, [0, 2, 3, 1])  # BCHW -> BHWC
-        output = tf.image.resize(
-          output,
-          [resize[1], resize[2]],
-          align_corners=True)
-        tf.logging.info('output resize shape {}'.format(output.shape))
-        output = tf.cast(output, dtype)
-        if data_format == "channels_first":
-          output = tf.transpose(output, [0, 3, 1, 2])  # BHWC -> BCHW
-      outputs.append(output)
+          output = tf.cast(output, tf.float32)
+          if data_format == "channels_first":
+              output = tf.transpose(output, [0, 2, 3, 1])  # BCHW -> BHWC
+          output = tf.image.resize(
+              output,
+              [resize[1], resize[2]],
+              align_corners=True)
+          tf.logging.info('output resize shape {}'.format(output.shape))
+          output = tf.cast(output, dtype)
+          if data_format == "channels_first":
+              output = tf.transpose(output, [0, 3, 1, 2])  # BHWC -> BCHW
+          outputs.append(output)
   if data_format == "channels_first":
-    outputs = tf.stack(outputs, 2)
+      outputs = tf.stack(outputs, 2)
   else:
-    outputs = tf.stack(outputs, 1)
+      outputs = tf.stack(outputs, 1)
 
   # Now max-pool at every location (alternatively try a 1x1 conv)
   kernel = [scales, 1, 1]
@@ -670,7 +669,7 @@ def bottleneck_block(inputs, filters, is_training, strides,
     return tf.nn.relu(inputs + shortcut)
 
 
-def block_group(inputs, filters, block_fn, blocks, strides, is_training, name,
+def block_group(inputs, filters, block_fn, blocks, strides, is_training, name, scope_name,
                 data_format='channels_first', dropblock_keep_prob=None,
                 dropblock_size=None, pre_activation=False,
                 norm_act_layer=LAYER_BN_RELU, se_ratio=None,
@@ -705,20 +704,10 @@ def block_group(inputs, filters, block_fn, blocks, strides, is_training, name,
     The output `Tensor` of the block layer.
   """
   # Only the first block per block_group uses projection shortcut and strides.
-  inputs = block_fn(inputs, filters, is_training, strides,
-                    use_projection=True, data_format=data_format,
-                    dropblock_keep_prob=dropblock_keep_prob,
-                    dropblock_size=dropblock_size,
-                    pre_activation=pre_activation,
-                    norm_act_layer=norm_act_layer,
-                    se_ratio=se_ratio,
-                    resnetd_shortcut=resnetd_shortcut,
-                    drop_connect_rate=drop_connect_rate,
-                    bn_momentum=bn_momentum)
 
-  for _ in range(1, blocks):
-    inputs = block_fn(inputs, filters, is_training, 1,
-                      data_format=data_format,
+  with tf.variable_scope("{}_{}".format(scope_name, 0), reuse=tf.AUTO_REUSE):
+    inputs = block_fn(inputs, filters, is_training, strides,
+                      use_projection=True, data_format=data_format,
                       dropblock_keep_prob=dropblock_keep_prob,
                       dropblock_size=dropblock_size,
                       pre_activation=pre_activation,
@@ -727,6 +716,19 @@ def block_group(inputs, filters, block_fn, blocks, strides, is_training, name,
                       resnetd_shortcut=resnetd_shortcut,
                       drop_connect_rate=drop_connect_rate,
                       bn_momentum=bn_momentum)
+
+  for idx in range(1, blocks):
+    with tf.variable_scope("{}_{}".format(scope_name, idx), reuse=tf.AUTO_REUSE):
+      inputs = block_fn(inputs, filters, is_training, 1,
+                        data_format=data_format,
+                        dropblock_keep_prob=dropblock_keep_prob,
+                        dropblock_size=dropblock_size,
+                        pre_activation=pre_activation,
+                        norm_act_layer=norm_act_layer,
+                        se_ratio=se_ratio,
+                        resnetd_shortcut=resnetd_shortcut,
+                        drop_connect_rate=drop_connect_rate,
+                        bn_momentum=bn_momentum)
 
   return tf.identity(inputs, name)
 
