@@ -747,7 +747,7 @@ def resnet_generator(block_fn,
                      dropblock_keep_probs=None,
                      dropblock_size=None,
                      pre_activation=False,
-                     scales=1,
+                     scales=4,
                      norm_act_layer=LAYER_BN_RELU,
                      bn_momentum=MOVING_AVERAGE_DECAY):
   """Generator for ResNet models.
