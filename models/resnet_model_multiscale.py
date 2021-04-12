@@ -101,35 +101,31 @@ def multiscale(
       outputs.append(output)
 
   # Now max-pool at every location (alternatively try a 1x1 conv)
+  if data_format == "channels_first":
+      outputs = tf.stack(outputs, 2)
+  else:
+      outputs = tf.stack(outputs, 1)
+  kernel = [scales, 1, 1]
+  stride = [scales, 1, 1]
   if pool_scales:
-      if data_format == "channels_first":
-          outputs = tf.stack(outputs, 2)
-      else:
-          outputs = tf.stack(outputs, 1)
-      kernel = [scales, 1, 1]
-      stride = [scales, 1, 1]
       outputs = tf.layers.max_pooling3d(
         outputs,
         pool_size=kernel,
         strides=stride,
         data_format=data_format)
-      if data_format == "channels_first":
-          outputs = tf.squeeze(outputs, 2)
-      else:
-          outputs = tf.squeeze(outputs, 1)
   else:
-      if data_format == "channels_first":
-          outputs = tf.concat(outputs, 1)
-      else:
-          outputs = tf.concat(outputs, -1)
       outputs = tf.nn.relu(
-          conv2d_fixed_padding(
+          tf.layers.Conv3D(
               outputs,
               filters=filters,
-              kernel_size=1,
-              strides=1,
+              kernel_size=kernel,
+              strides=stride,
               name='{}_merge'.format(name),
               data_format=data_format))
+  if data_format == "channels_first":
+      outputs = tf.squeeze(outputs, 2)
+  else:
+      outputs = tf.squeeze(outputs, 1)
   outputs = tf.layers.max_pooling2d(
       inputs=outputs, pool_size=2, strides=2, padding='SAME',
       data_format=data_format)
