@@ -62,6 +62,8 @@ def multiscale(
       resize = [resize[0], resize[2], resize[3], resize[1]]  # BHWC
   dtype = inputs.dtype
   outputs = []
+  tf.logging.info('Multiscale on layer: {}'.format(name))
+  tf.logging.info('*' * 30)
   for scale in range(scales):
       if scale > 0:
           tf.logging.info('Scale {}'.format(scale))
@@ -122,6 +124,9 @@ def multiscale(
               strides=1,
               name='{}_merge'.format(name),
               data_format=data_format))
+  outputs = tf.layers.max_pooling2d(
+      inputs=outputs, pool_size=2, strides=2, padding='SAME',
+      data_format=data_format)
   return outputs
 
 
@@ -757,7 +762,7 @@ def resnet_generator(block_fn,
                      dropblock_keep_probs=None,
                      dropblock_size=None,
                      pre_activation=False,
-                     scales=4,
+                     scales=3,
                      norm_act_layer=LAYER_BN_RELU,
                      bn_momentum=MOVING_AVERAGE_DECAY):
   """Generator for ResNet models.
