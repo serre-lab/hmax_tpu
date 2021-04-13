@@ -110,8 +110,10 @@ def multiscale(
   stride = [scales, 1, 1]
   if pool_scales:
       if use_pool:
-          kernel[1:] = 2
-          stride[1:] = 2
+          kernel[1] = 2
+          kernel[2] = 2
+          stride[1] = 2
+          stride[2] = 2
       outputs = tf.layers.max_pooling3d(
         outputs,
         pool_size=kernel,
