@@ -134,8 +134,10 @@ def multiscale(
               name='{}_merge'.format(name),
               data_format=data_format))
       if data_format == "channels_first":
+          filters = output.get_shape().as_list()[1]
           outputs = tf.squeeze(outputs, 2)
       else:
+          filters = output.get_shape().as_list()[-1]
           outputs = tf.squeeze(outputs, 1)
       if use_pool:
           outputs = tf.layers.max_pooling2d(
