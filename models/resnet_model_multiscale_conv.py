@@ -110,8 +110,10 @@ def multiscale(
   stride = [scales, 1, 1]
   if pool_scales:
       if use_pool:
-          kernel[1:] = 2
-          stride[1:] = 2
+          kernel[1] = 2
+          kernel[2] = 2
+          stride[1] = 2
+          stride[2] = 2
       outputs = tf.layers.max_pooling3d(
         outputs,
         pool_size=kernel,
@@ -949,12 +951,15 @@ def resnet_generator(block_fn,
     # The activation is 7x7 so this is a global average pool.
     # TODO(huangyp): reduce_mean will be faster.
     if data_format == 'channels_last':
-      pool_size = (inputs.shape[1], inputs.shape[2])
+      # pool_size = (inputs.shape[1], inputs.shape[2])
+      reduction_indices = [1, 2]
     else:
-      pool_size = (inputs.shape[2], inputs.shape[3])
-    inputs = tf.layers.average_pooling2d(
-        inputs=inputs, pool_size=pool_size, strides=1, padding='VALID',
-        data_format=data_format)
+      # pool_size = (inputs.shape[2], inputs.shape[3])
+      reduction_indices = [2, 3]
+    inputs = tf.reduce_mean(inputs, reduction_indices=reduction_indices)
+    # inputs = tf.layers.average_pooling2d(
+    #     inputs=inputs, pool_size=pool_size, strides=1, padding='VALID',
+    #     data_format=data_format)
     inputs = tf.identity(inputs, 'final_avg_pool')
     inputs = tf.reshape(
         inputs, [-1, 2048 if block_fn is bottleneck_block else 512])
@@ -963,6 +968,7 @@ def resnet_generator(block_fn,
       tf.logging.info('using dropout')
       inputs = tf.layers.dropout(
           inputs, rate=dropout_rate, training=is_training)
+    tf.logging.info('Predense shape: {}'.format(inputs.shape))
 
     inputs = tf.layers.dense(
         inputs=inputs,
