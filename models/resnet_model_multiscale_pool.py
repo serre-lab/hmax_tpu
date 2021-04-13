@@ -56,6 +56,7 @@ def multiscale(
     scope_name,
     dropblock_keep_prob,
     drop_connect_rate,
+    use_pool=True,
     pool_scales=True):
   resize = inputs.get_shape().as_list()
   if data_format == "channels_first":
@@ -108,8 +109,9 @@ def multiscale(
   kernel = [scales, 1, 1]
   stride = [scales, 1, 1]
   if pool_scales:
-      kernel = [scales, 2, 2]
-      stride = [scales, 2, 2]
+      if use_pool:
+          kernel[1:] = 2
+          stride[1:] = 2
       outputs = tf.layers.max_pooling3d(
         outputs,
         pool_size=kernel,
@@ -133,9 +135,10 @@ def multiscale(
           outputs = tf.squeeze(outputs, 2)
       else:
           outputs = tf.squeeze(outputs, 1)
-      outputs = tf.layers.max_pooling2d(
-          inputs=outputs, pool_size=2, strides=2, padding='SAME',
-          data_format=data_format)
+      if use_pool:
+          outputs = tf.layers.max_pooling2d(
+              inputs=outputs, pool_size=2, strides=2, padding='SAME',
+              data_format=data_format)
   tf.logging.info('Pooled output shape {}'.format(outputs.shape))
   tf.logging.info('*' * 30)
   return outputs
@@ -935,6 +938,7 @@ def resnet_generator(block_fn,
         name='block_group4',
         scope_name='multiscale4',
         dropblock_keep_prob=dropblock_keep_probs[3],
+        use_pool=False,
         drop_connect_rate=resnet_layers.get_drop_connect_rate(
             drop_connect_rate, 5, num_layers))
 
