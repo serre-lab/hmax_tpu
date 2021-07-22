@@ -25,7 +25,7 @@ spec:
         args:
           - -c
           - >-
-            git clone https://github.com/drewlinsley/hmax_tpu.git &&
+            git clone https://github.com/serre-lab/hmax_tpu.git &&
             cd hmax_tpu &&
             pip3 install --upgrade pip &&
             pip3 install -U tpunicorn &&
