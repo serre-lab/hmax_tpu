@@ -35,6 +35,7 @@ from hyperparameters import common_tpu_flags
 from hyperparameters import flags_to_params
 from hyperparameters import params_dict
 import imagenet_input
+import herbarium_input
 import lars_util
 import models
 from configs import resnet_config
@@ -752,11 +753,26 @@ def main(unused_argv):
 
   # Input pipelines are slightly different (with regards to shuffling and
   # preprocessing) between training and evaluation.
-  if FLAGS.bigtable_instance:
+  if FLAGS.bigtable_instance and 'imagenet' in FLAGS.DATA_DIR: 
     tf.logging.info('Using Bigtable dataset, table %s', FLAGS.bigtable_table)
     select_train, select_eval = _select_tables_from_flags()
     imagenet_train, imagenet_eval = [
         imagenet_input.ImageNetBigtableInput(  # pylint: disable=g-complex-comprehension
+            is_training=is_training,
+            use_bfloat16=use_bfloat16,
+            transpose_input=params.transpose_input,
+            selection=selection,
+            augment_name=FLAGS.augment_name,
+            randaug_num_layers=FLAGS.randaug_num_layers,
+            randaug_magnitude=FLAGS.randaug_magnitude)
+        for (is_training, selection) in [(True,
+                                          select_train), (False, select_eval)]
+    ]
+  elif FLAGS.bigtable_instance and 'herbarium' in FLAGS.DATA_DIR: 
+    tf.logging.info('Using Bigtable dataset, table %s', FLAGS.bigtable_table)
+    select_train, select_eval = _select_tables_from_flags()
+    imagenet_train, imagenet_eval = [
+        herbarium_input.HBigtableInput(  # pylint: disable=g-complex-comprehension
             is_training=is_training,
             use_bfloat16=use_bfloat16,
             transpose_input=params.transpose_input,
@@ -772,7 +788,29 @@ def main(unused_argv):
       tf.logging.info('Using fake dataset.')
     else:
       tf.logging.info('Using dataset: %s', FLAGS.data_dir)
-    imagenet_train, imagenet_eval = [
+      
+    num_label_classes =1001
+    if 'herbarium' in FLAGS.data_dir:
+     
+      imagenet_train, imagenet_eval = [
+        herbarium_input.HerbariumInput(  # pylint: disable=g-complex-comprehension
+            is_training=is_training,
+            data_dir=FLAGS.data_dir,
+            transpose_input=params.transpose_input,
+            cache=params.use_cache and is_training,
+            image_size=params.image_size,
+            num_parallel_calls=params.num_parallel_calls,
+            
+            #include_background_label=(params.num_label_classes == 1001),
+            include_background_label=(params.num_label_classes == num_label_classes+1),
+            use_bfloat16=use_bfloat16,
+            augment_name=FLAGS.augment_name,
+            randaug_num_layers=FLAGS.randaug_num_layers,
+            randaug_magnitude=FLAGS.randaug_magnitude)
+        for is_training in [True, False]
+      ]
+    else:
+        imagenet_train, imagenet_eval = [
         imagenet_input.ImageNetInput(  # pylint: disable=g-complex-comprehension
             is_training=is_training,
             data_dir=FLAGS.data_dir,
@@ -780,13 +818,15 @@ def main(unused_argv):
             cache=params.use_cache and is_training,
             image_size=params.image_size,
             num_parallel_calls=params.num_parallel_calls,
-            include_background_label=(params.num_label_classes == 1001),
+            
+            #include_background_label=(params.num_label_classes == 1001),
+            include_background_label=(params.num_label_classes == num_label_classes+1),
             use_bfloat16=use_bfloat16,
             augment_name=FLAGS.augment_name,
             randaug_num_layers=FLAGS.randaug_num_layers,
             randaug_magnitude=FLAGS.randaug_magnitude)
         for is_training in [True, False]
-    ]
+      ]
 
   steps_per_epoch = params.num_train_images // params.train_batch_size
   eval_steps = params.num_eval_images // params.eval_batch_size
@@ -800,6 +840,7 @@ def main(unused_argv):
     #   tf.logging.info('Starting to evaluate {}.'.format(ckpt))
       # try:
         start_timestamp = time.time()  # This time will include compilation time
+        
         eval_results = resnet_classifier.evaluate(
             input_fn=imagenet_eval.input_fn,
             steps=eval_steps,

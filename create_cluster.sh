@@ -7,7 +7,7 @@ START_NODES=1  # 8
 gcloud beta container --project "beyond-dl-1503610372419" \
 clusters create "$CLUSTER_NAME" \
 --zone "europe-west4-a" --no-enable-basic-auth \
---cluster-version "1.18.16-gke.2100" \
+--cluster-version "1.19.9-gke.1900" \
 --machine-type "n1-standard-4" \
 --image-type "UBUNTU" \
 --disk-type "pd-standard" \
