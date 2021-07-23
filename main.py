@@ -237,7 +237,7 @@ flags.DEFINE_bool(
 
 
 # dataset 
-flags.DEFINE_string('dataset',None,'for use of a custom dataset, e.g herbarium ')
+flags.DEFINE_string('dataset',default='herbarium',help='for use of a custom dataset, e.g herbarium ')
 
 
 # The input tensor is in the range of [0, 255], we need to scale them to the

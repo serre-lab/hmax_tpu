@@ -31,7 +31,6 @@ EXPORT_DIR=$STORAGE_BUCKET/prj-fossils/exported/$experiment_name
 
 python3 main.py \
   --num_label_classes=$labels\ 
-  --dataset=$dataset\
   --tpu=$TPU_NAME\
   --data_dir=$DATA_DIR\
   --model_dir=$MODEL_DIR\
