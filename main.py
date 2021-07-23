@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Train a ResNet-50 model on ImageNet on TPU."""
+"""Train a ResNet-50 model on ImageNet on TPU. Check for herbarium details """
 
 from __future__ import absolute_import
 from __future__ import division
