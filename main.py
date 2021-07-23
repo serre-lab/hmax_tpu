@@ -236,6 +236,10 @@ flags.DEFINE_bool(
     'Whether to export model using moving average variables.')
 
 
+# dataset 
+flags.DEFINE_string('dataset',None,'for use of a custom dataset, e.g herbarium ')
+
+
 # The input tensor is in the range of [0, 255], we need to scale them to the
 # range of [0, 1]
 MEAN_RGB = [0.485 * 255, 0.456 * 255, 0.406 * 255]
@@ -768,7 +772,7 @@ def main(unused_argv):
         for (is_training, selection) in [(True,
                                           select_train), (False, select_eval)]
     ]
-  elif FLAGS.bigtable_instance and 'herbarium' in FLAGS.DATA_DIR: 
+  elif FLAGS.bigtable_instance and FLAGS.dataset=='herbarium': 
     tf.logging.info('Using Bigtable dataset, table %s', FLAGS.bigtable_table)
     select_train, select_eval = _select_tables_from_flags()
     imagenet_train, imagenet_eval = [
@@ -789,8 +793,8 @@ def main(unused_argv):
     else:
       tf.logging.info('Using dataset: %s', FLAGS.data_dir)
       
-    num_label_classes =1001
-    if 'herbarium' in FLAGS.data_dir:
+    
+    if FLAGS.dataset=='herbarium':
      
       imagenet_train, imagenet_eval = [
         herbarium_input.HerbariumInput(  # pylint: disable=g-complex-comprehension
@@ -802,7 +806,7 @@ def main(unused_argv):
             num_parallel_calls=params.num_parallel_calls,
             
             #include_background_label=(params.num_label_classes == 1001),
-            include_background_label=(params.num_label_classes == num_label_classes+1),
+            include_background_label=(params.num_label_classes == 64501),
             use_bfloat16=use_bfloat16,
             augment_name=FLAGS.augment_name,
             randaug_num_layers=FLAGS.randaug_num_layers,
@@ -818,9 +822,7 @@ def main(unused_argv):
             cache=params.use_cache and is_training,
             image_size=params.image_size,
             num_parallel_calls=params.num_parallel_calls,
-            
-            #include_background_label=(params.num_label_classes == 1001),
-            include_background_label=(params.num_label_classes == num_label_classes+1),
+            include_background_label=(params.num_label_classes ==1001),
             use_bfloat16=use_bfloat16,
             augment_name=FLAGS.augment_name,
             randaug_num_layers=FLAGS.randaug_num_layers,
