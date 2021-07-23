@@ -116,7 +116,7 @@ flags.DEFINE_string(
     help='One of {"train_and_eval", "train", "eval"}.')
 
 flags.DEFINE_string(
-    'model_script', default='resnet',
+    'model_script', default='resnet_model',
     help='Name of model class.')
 
 flags.DEFINE_integer(

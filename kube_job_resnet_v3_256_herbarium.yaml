@@ -40,4 +40,4 @@ spec:
             # Request a single Preemptible v2-8 Cloud TPU device to train the
             # model. A single v2-8 Cloud TPU device consists of 4 chips, each of
             # which has 2 cores, so there are 8 cores in total.
-            cloud-tpus.google.com/preemptible-v3: 256
+            cloud-tpus.google.com/preemptible-v3: 8
