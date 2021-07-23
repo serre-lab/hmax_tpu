@@ -15,7 +15,7 @@ tpu_name=$4
 
 experiment_name=$1  # finetune_BU_{bu_loss}_TD_{td_loss}_R50_lr0.1_T0.1
 tpu_name=$2
-labels = 64500
+labels=64500
 
 export TPU_NAME=$tpu_name  # 'prj-selfsup-tpu'
 export STORAGE_BUCKET='gs://serrelab'
