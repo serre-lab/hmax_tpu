@@ -6,6 +6,7 @@ enable_lars=False
 train_batch_size=256
 base_learning_rate=0.1
 use_tpu=True
+dataset=herbarium
 
 new_experiment_name=$1  # finetune_BU_{bu_loss}_TD_{td_loss}_R50_lr0.1_T0.1
 old_experiment_name=$2  # "model.ckpt-93836"
@@ -16,7 +17,7 @@ tpu_name=$4
 experiment_name=$1  # finetune_BU_{bu_loss}_TD_{td_loss}_R50_lr0.1_T0.1
 tpu_name=$2
 labels=64500
-dataset='herbarium'
+
 
 export TPU_NAME=$tpu_name  # 'prj-selfsup-tpu'
 export STORAGE_BUCKET='gs://serrelab'
@@ -30,7 +31,7 @@ EXPORT_DIR=$STORAGE_BUCKET/prj-fossils/exported/$experiment_name
 
 python3 main.py \
   --num_label_classes=$labels\ 
-  --dataset=$dataset
+  --dataset=$dataset\
   --tpu=$TPU_NAME\
   --data_dir=$DATA_DIR\
   --model_dir=$MODEL_DIR\
