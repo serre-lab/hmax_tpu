@@ -757,7 +757,7 @@ def main(unused_argv):
 
   # Input pipelines are slightly different (with regards to shuffling and
   # preprocessing) between training and evaluation.
-  if FLAGS.bigtable_instance and 'imagenet' in FLAGS.DATA_DIR: 
+  if FLAGS.bigtable_instance and False: 
     tf.logging.info('Using Bigtable dataset, table %s', FLAGS.bigtable_table)
     select_train, select_eval = _select_tables_from_flags()
     imagenet_train, imagenet_eval = [
@@ -804,8 +804,6 @@ def main(unused_argv):
             cache=params.use_cache and is_training,
             image_size=params.image_size,
             num_parallel_calls=params.num_parallel_calls,
-            
-            #include_background_label=(params.num_label_classes == 1001),
             include_background_label=(params.num_label_classes == 64501),
             use_bfloat16=use_bfloat16,
             augment_name=FLAGS.augment_name,

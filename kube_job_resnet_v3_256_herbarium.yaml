@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: resnet-tpu-v3-256-herbarium
+  name: resnet-tpu-herbarium-v3-256
 spec:
   # parallelism: 8  # Matches number of preemptables. This is the queue size.
   template:
@@ -32,7 +32,7 @@ spec:
             pip3 install -r requirements.txt &&
             export PATH="$HOME/.local/bin:$PATH" &&
             pu list &&
-            EXP_NAME=resnet_tpuv3_256_herbarium &&
+            EXP_NAME=resnet_tpu_herbarium_v3_256_ &&
             MODEL_NAME=resnet_model &&
             bash jobs/resnet_supervised.sh $EXP_NAME $(KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS) $MODEL_NAME
         resources:
