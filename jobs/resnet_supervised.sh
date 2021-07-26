@@ -28,9 +28,10 @@ DATA_DIR=$STORAGE_BUCKET/prj-fossil/data/herbarium/
 # DATA_DIR=$STORAGE_BUCKET/imagenet_dataset/imagenet2012/5.0.0/
 MODEL_DIR=$STORAGE_BUCKET/prj-fossil/results/$experiment_name
 EXPORT_DIR=$STORAGE_BUCKET/prj-fossil/exported/$experiment_name
+gsutil mkdir $MODEL_DIR
+gsutil mkdir $EXPORT_DIR
 
 python3 main.py \
-  --num_label_classes=$labels\ 
   --tpu=$TPU_NAME\
   --data_dir=$DATA_DIR\
   --model_dir=$MODEL_DIR\
