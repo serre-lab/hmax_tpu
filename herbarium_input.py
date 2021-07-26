@@ -345,7 +345,7 @@ class HerbariumInput(HerbariumTFExampleInput):
     # TODO: update with correct paths
     if not self.dataset_split:
       file_pattern = os.path.join(
-          self.data_dir, 'train/' if self.is_training else 'validation/')
+          self.data_dir, 'train/*' if self.is_training else 'validation/*')
           # self.data_dir, 'Herbarium2012-train*' if self.is_training else 'Herbarium2012-validation*')
     else:
       if self.dataset_split not in ['train', 'validation']:
