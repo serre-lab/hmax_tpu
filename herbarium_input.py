@@ -354,6 +354,7 @@ class HerbariumInput(HerbariumTFExampleInput):
             % self.dataset_split)
       file_pattern = os.path.join(self.data_dir, self.dataset_split + '-*')
 
+    print(file_pattern)
     # For multi-host training, we want each hosts to always process the same
     # subset of files.  Each host only sees a subset of the entire dataset,
     # allowing us to cache larger datasets in memory.

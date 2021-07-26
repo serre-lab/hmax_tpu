@@ -21,7 +21,7 @@ labels=64500
 
 export TPU_NAME=$tpu_name  # 'prj-selfsup-tpu'
 export STORAGE_BUCKET='gs://serrelab'
-DATA_DIR=$STORAGE_BUCKET/prj-fossil/data/herbarium/ 
+DATA_DIR=$STORAGE_BUCKET/prj-fossil/data/herbarium/
 #gsutil mkdir $STORAGE_BUCKET/prj-fossils/
 #gsutil mkdir $STORAGE_BUCKET/prj-fossils/results/
 #gsutil mkdir $STORAGE_BUCKET/prj-fossils/exported/
