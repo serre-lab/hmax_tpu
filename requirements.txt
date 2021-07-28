@@ -1,3 +1,5 @@
 absl-py
 tensorflow-gpu==2.1.0
 tensorflow-addons
+numpy 
+pandas
