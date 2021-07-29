@@ -23,14 +23,14 @@ import tensorflow_addons as tfa
 AUTO = tf.data.experimental.AUTOTUNE
 TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/train/*.tfrec')
 VALIDATION_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/validation/*.tfrec')
+tpu_name=os.getenv('TPU_NAME')
 
+cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
+tpu=tpu_name)
 
-# Detect hardware, return appropriate distribution strategy
-try:
-    tpu = tf.distribute.cluster_resolver.TPUClusterResolver.connect() # TPU detection
-    strategy = tf.distribute.TPUStrategy(tpu)
-except ValueError:
-    strategy = tf.distribute.MirroredStrategy() # for GPU or multi-GPU machines
+tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
+
+strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
 
 print("Number of accelerators: ", strategy.num_replicas_in_sync)
 
