@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: resnet-tpu-herbarium-v3-256
+  name: resnet-tpu-herbarium-v3-256_2
 spec:
   # parallelism: 8  # Matches number of preemptables. This is the queue size.
   template:
@@ -10,16 +10,17 @@ spec:
         # The Cloud TPUs that will be created for this Job will support
         # TensorFlow 2.2. This version MUST match the
         # TensorFlow version that your model is built on.
-        tf-version.cloud-tpus.google.com: "2.1"
+        tf-version.cloud-tpus.google.com: "2.1.0"
     spec:
       securityContext:
         runAsUser: 0
-      restartPolicy: OnFailure
+      restartPolicy: Never
       containers:
-      - name: resnet-tpu
+      - name: resnet-tpu-herbarium-v3-256_2
         # The official TensorFlow 1.15.2 image.
         # https://hub.docker.com/r/tensorflow/tensorflow
         # image: tensorflow/tensorflow:1.15.2
+        #image: 
         image: gcr.io/kubeflow-images-public/tensorflow-2.1.0-notebook-gpu:1.0.0
         command: ["/bin/sh"]
         args:

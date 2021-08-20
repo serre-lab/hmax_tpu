@@ -29,5 +29,5 @@ MODEL_DIR=$STORAGE_BUCKET/prj-fossil/results/$experiment_name
 EXPORT_DIR=$STORAGE_BUCKET/prj-fossil/exported/$experiment_name
 
 
-python3 main_herbarium.py 
+python main_herbarium.py --tpu=$TPU_NAME\
   

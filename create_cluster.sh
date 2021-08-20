@@ -1,5 +1,5 @@
 # Create kubernetes cluster with 4 nodes for self-sup experiments
-CLUSTER_NAME=self-sup
+CLUSTER_NAME=herbarium
 MIN_NODES=0
 MAX_NODES=1  # 16
 START_NODES=1  # 8

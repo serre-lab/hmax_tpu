@@ -10,13 +10,13 @@ spec:
         # The Cloud TPUs that will be created for this Job will support
         # TensorFlow 2.2. This version MUST match the
         # TensorFlow version that your model is built on.
-        tf-version.cloud-tpus.google.com: "2.1"
+        tf-version.cloud-tpus.google.com: "2.1.0"
     spec:
       securityContext:
         runAsUser: 0
       restartPolicy: OnFailure
       containers:
-      - name: arch-tpu
+      - name: arch-tpu-herbarium-v3-256
         # The official TensorFlow 1.15.2 image.
         # https://hub.docker.com/r/tensorflow/tensorflow
         # image: tensorflow/tensorflow:1.15.2
@@ -32,7 +32,7 @@ spec:
             pip3 install -r requirements.txt &&
             export PATH="$HOME/.local/bin:$PATH" &&
             pu list &&
-            EXP_NAME=resnet_tpu_herbarium_v3_256_ &&
+            EXP_NAME=arch_tpu_herbarium_v3_256 &&
             MODEL_NAME=resnet_model &&
             bash jobs/arch_supervised.sh $EXP_NAME $(KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS) $MODEL_NAME
         resources:

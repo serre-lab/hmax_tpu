@@ -19,14 +19,19 @@ import tensorflow_addons as tfa
 
 #import efficientnet.tfkeras as efn
 
+FLAGS = flags.FLAGS
 
 AUTO = tf.data.experimental.AUTOTUNE
 TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/train/*.tfrec')
 VALIDATION_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/validation/*.tfrec')
-tpu_name=os.getenv('TPU_NAME')
+#tpu_name=os.getenv('TPU_NAME')
 
+#cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
+#tpu=tpu_name)
 cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
-tpu=tpu_name)
+      FLAGS.tpu if (FLAGS.tpu) else '',
+      zone=FLAGS.tpu_zone,
+      project=FLAGS.gcp_project)
 
 tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
 
