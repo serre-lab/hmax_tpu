@@ -176,9 +176,9 @@ def main(unused_argv):
       project=FLAGS.gcp_project)
     tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
 
-strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
+    strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
 
-print("Number of accelerators: ", strategy.num_replicas_in_sync)
+    print("Number of accelerators: ", strategy.num_replicas_in_sync)
 
     with strategy.scope():
         # NasNET
