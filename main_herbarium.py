@@ -23,12 +23,14 @@ from hyperparameters import common_tpu_flags
 from hyperparameters import flags_to_params
 from hyperparameters import params_dict
 from configs import resnet_config
+
+
 common_tpu_flags.define_common_tpu_flags()
 common_hparams_flags.define_common_hparams_flags()
-
+FLAGS = flags.FLAGS
 #import efficientnet.tfkeras as efn
 
-FLAGS = flags.FLAGS
+
 
 AUTO = tf.data.experimental.AUTOTUNE
 TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/train/*.tfrec')
@@ -37,29 +39,6 @@ VALIDATION_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbariu
 
 #cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
 #tpu=tpu_name)
-params = params_dict.ParamsDict(
-      resnet_config.RESNET_CFG, resnet_config.RESNET_RESTRICTIONS)
-params = params_dict.override_params_dict(
-      params, FLAGS.config_file, is_strict=True)
-params = params_dict.override_params_dict(
-      params, FLAGS.params_override, is_strict=True)
-
-params = flags_to_params.override_params_from_input_flags(params, FLAGS)
-# Save params for transfer to GCS
-np.savez('params.npz', **params.as_dict())
-
-params.validate()
-params.lock()
-cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
-      FLAGS.tpu if (FLAGS.tpu or params.use_tpu) else '',
-      zone=FLAGS.tpu_zone,
-      project=FLAGS.gcp_project)
-
-tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
-
-strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
-
-print("Number of accelerators: ", strategy.num_replicas_in_sync)
 
 
 class CFG:
@@ -176,8 +155,31 @@ def get_model(base_arch='Nasnet',weights='imagenet'):
     
     return model
 
-def main():
+def main(unused_argv):
     MAIN_CKP_DIR = 'gs://serrelab/prj-fossil/exported/'
+    params = params_dict.ParamsDict(
+      resnet_config.RESNET_CFG, resnet_config.RESNET_RESTRICTIONS)
+    params = params_dict.override_params_dict(
+      params, FLAGS.config_file, is_strict=True)
+    params = params_dict.override_params_dict(
+          params, FLAGS.params_override, is_strict=True)
+    
+    params = flags_to_params.override_params_from_input_flags(params, FLAGS)
+    # Save params for transfer to GCS
+    np.savez('params.npz', **params.as_dict())
+    
+    params.validate()
+    params.lock()
+    cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
+      FLAGS.tpu if (FLAGS.tpu or params.use_tpu) else '',
+      zone=FLAGS.tpu_zone,
+      project=FLAGS.gcp_project)
+    tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
+
+    strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
+
+    print("Number of accelerators: ", strategy.num_replicas_in_sync)
+
     with strategy.scope():
         # NasNET
         for arch in ['resnet5-v2','Nasnet']:
@@ -203,3 +205,6 @@ def main():
             
                 model.save_weights(MAIN_CKP_DIR+'%s_%s_last.h5'%(arch,weights))
 
+if __name__ == '__main__':
+  tf.logging.set_verbosity(tf.logging.INFO)
+  app.run(main)
