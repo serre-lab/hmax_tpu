@@ -45,7 +45,7 @@ class CFG:
     N_CLASSES = 64500
     IMAGE_SIZE = [256, 256]
     EPOCHS = 25
-    BATCH_SIZE = 16 * strategy.num_replicas_in_sync
+    BATCH_SIZE = 16 * 4#strategy.num_replicas_in_sync
 
 
 
@@ -176,9 +176,9 @@ def main(unused_argv):
       project=FLAGS.gcp_project)
     tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
 
-    strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
+strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
 
-    print("Number of accelerators: ", strategy.num_replicas_in_sync)
+print("Number of accelerators: ", strategy.num_replicas_in_sync)
 
     with strategy.scope():
         # NasNET
