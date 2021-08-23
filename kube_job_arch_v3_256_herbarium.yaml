@@ -10,7 +10,7 @@ spec:
         # The Cloud TPUs that will be created for this Job will support
         # TensorFlow 2.2. This version MUST match the
         # TensorFlow version that your model is built on.
-        tf-version.cloud-tpus.google.com: "2.1.0"
+        tf-version.cloud-tpus.google.com: "2.1"
     spec:
       securityContext:
         runAsUser: 0

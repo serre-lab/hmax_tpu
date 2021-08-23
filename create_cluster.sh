@@ -4,28 +4,22 @@ MIN_NODES=0
 MAX_NODES=1  # 16
 START_NODES=1  # 8
 
-gcloud beta container --project "beyond-dl-1503610372419" \
+gcloud container --project "beyond-dl-1503610372419" \
 clusters create "$CLUSTER_NAME" \
 --zone "europe-west4-a" --no-enable-basic-auth \
---cluster-version "1.19.9-gke.1900" \
+--cluster-version "1.20.8-gke.900" \
 --machine-type "n1-standard-4" \
 --image-type "UBUNTU" \
 --disk-type "pd-standard" \
 --disk-size "20" \
---metadata disable-legacy-endpoints=true,serial-port-logging-enable=false \
---no-enable-stackdriver-kubernetes \
 --scopes "https://www.googleapis.com/auth/cloud-platform" --preemptible \
 --max-nodes "$MAX_NODES" \
 --min-nodes "$MIN_NODES" \
 --num-nodes "$START_NODES" \
---enable-ip-alias \
 --network "projects/beyond-dl-1503610372419/global/networks/default" \
 --subnetwork "projects/beyond-dl-1503610372419/regions/europe-west4/subnetworks/default" \
---default-max-pods-per-node "110" \
---no-enable-master-authorized-networks --addons HorizontalPodAutoscaling,HttpLoadBalancing \
---enable-autoupgrade --enable-autorepair \
---max-surge-upgrade 1 --max-unavailable-upgrade 0 --enable-tpu
-# --enable-stackdriver-kubernetes \
+--enable-ip-alias \
+--enable-tpu
 
 
 # Apply a quota to the cluster that matches preemptible resources
