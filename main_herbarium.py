@@ -206,5 +206,5 @@ def main(unused_argv):
                 model.save_weights(MAIN_CKP_DIR+'%s_%s_last.h5'%(arch,weights))
 
 if __name__ == '__main__':
-  tf.logging.set_verbosity(tf.logging.INFO)
+  #tf.logging.set_verbosity(tf.logging.INFO)
   app.run(main)
