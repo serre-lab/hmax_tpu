@@ -31,7 +31,7 @@ def define_common_tpu_flags():
       'will attempt to automatically detect the GCE project from metadata.')
 
   flags.DEFINE_string(
-      'tpu_zone', default=None,
+      'tpu_zone', default='europe-west4-a',
       help='GCE zone where the Cloud TPU is located in. If not specified, we '
       'will attempt to automatically detect the GCE project from metadata.')
 
