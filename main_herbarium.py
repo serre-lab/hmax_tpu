@@ -181,7 +181,7 @@ def main(unused_argv):
        '',
       zone=FLAGS.tpu_zone,
       project=FLAGS.gcp_project)
-    tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
+    #tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
 
     strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
 
