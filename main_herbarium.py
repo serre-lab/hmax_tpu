@@ -30,7 +30,10 @@ common_hparams_flags.define_common_hparams_flags()
 FLAGS = flags.FLAGS
 #import efficientnet.tfkeras as efn
 
-
+flags.DEFINE_string(
+    'export_dir',
+    default=None,
+    help=('The directory where the exported SavedModel will be stored.'))
 
 AUTO = tf.data.experimental.AUTOTUNE
 TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/train/*.tfrec')
