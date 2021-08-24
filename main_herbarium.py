@@ -176,8 +176,9 @@ def main(unused_argv):
     print(FLAGS.gcp_project)
     print(FLAGS.tpu_zone)
     print(FLAGS.tpu)
+    
     cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
-      FLAGS.tpu if (FLAGS.tpu or params.use_tpu) else '',
+       '',
       zone=FLAGS.tpu_zone,
       project=FLAGS.gcp_project)
     tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
