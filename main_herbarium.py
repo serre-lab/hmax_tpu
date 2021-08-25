@@ -209,7 +209,7 @@ def main(unused_argv):
                     ckpt_file = MAIN_CKP_DIR+'%s_NO_imagenet_%s_best.h5'%(arch,weights)
                 else: 
                     ckpt_file = MAIN_CKP_DIR+'%s_imagenet_%s_best.h5'%(arch,weights)
-                print('saving ckpts in : 'ckpt_file)
+                print('saving ckpts in : ',ckpt_file)
                 chk_callback = tf.keras.callbacks.ModelCheckpoint(ckpt_file, monitor='val_loss', 
                                                           save_best_only=True,
                                                           save_weights_only=True, 
