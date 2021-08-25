@@ -159,7 +159,8 @@ def get_model(base_arch='Nasnet',weights='imagenet'):
     return model
 
 def main(unused_argv):
-    MAIN_CKP_DIR = 'gs://serrelab/prj-fossil/'
+    MAIN_CKP_DIR = 'ckpt'
+    os.makedirs(MAIN_CKP_DIR,exist_ok=True)
     params = params_dict.ParamsDict(
       resnet_config.RESNET_CFG, resnet_config.RESNET_RESTRICTIONS)
     params = params_dict.override_params_dict(
@@ -195,7 +196,7 @@ def main(unused_argv):
     with strategy.scope():
         # NasNET
         for arch in ['Resnet50v2','Nasnet']:
-            for weights in ['imagenet',None]:
+            for weights in [None,'imagenet']:
                 model = get_model(arch,weights)
                 model.summary()
                 lr_callback = tf.keras.callbacks.ReduceLROnPlateau(patience=2, min_delta=0.001,
@@ -203,7 +204,11 @@ def main(unused_argv):
                 es_callback = tf.keras.callbacks.EarlyStopping(patience=5, min_delta=0.001, 
                                                        monitor='val_loss', mode='min',
                                                        restore_best_weights=True)
-                chk_callback = tf.keras.callbacks.ModelCheckpoint(MAIN_CKP_DIR+'%s_imagenet_%s_best.h5'%(arch,weights), monitor='val_loss', 
+                if not weights: 
+                    ckpt_file = MAIN_CKP_DIR+'%s_NO_imagenet_%s_best.h5'%(arch,weights)
+                else: 
+                    ckpt_file = MAIN_CKP_DIR+'%s_imagenet_%s_best.h5'%(arch,weights)
+                chk_callback = tf.keras.callbacks.ModelCheckpoint(ckpt_file, monitor='val_loss', 
                                                           save_best_only=True,
                                                           save_weights_only=True, 
                                                           mode='min')
@@ -214,8 +219,11 @@ def main(unused_argv):
                             validation_data=get_validation_dataset(),
                             callbacks=[lr_callback, chk_callback, es_callback],
                             verbose=1)
-            
-                model.save_weights(MAIN_CKP_DIR+'%s_%s_last.h5'%(arch,weights))
+
+                if not weights: 
+                    model.save_weights(MAIN_CKP_DIR+'%s_%s_last.h5'%(arch,'NO_imagenet'))
+                else: 
+                    model.save_weights(MAIN_CKP_DIR+'%s_%s_last.h5'%(arch,weights))
 
 if __name__ == '__main__':
   #tf.logging.set_verbosity(tf.logging.INFO)
