@@ -154,8 +154,8 @@ def get_model(base_arch='Nasnet',weights='imagenet'):
     
     model.compile(optimizer='adam',
                   loss='categorical_crossentropy',
-                  metrics=[tfa.metrics.F1Score(CFG.N_CLASSES, average='macro'),'accuracy',tf.keras.metrics.TopKCategoricalAccuracy(K=1),
-                           tf.keras.metrics.TopKCategoricalAccuracy(K=3),tf.keras.metrics.TopKCategoricalAccuracy(K=5)])
+                  metrics=[tfa.metrics.F1Score(CFG.N_CLASSES, average='macro'),'accuracy',tf.keras.metrics.TopKCategoricalAccuracy(k=1),
+                           tf.keras.metrics.TopKCategoricalAccuracy(k=3),tf.keras.metrics.TopKCategoricalAccuracy(k=5)])
     
     return model
 
