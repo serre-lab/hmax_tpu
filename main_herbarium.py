@@ -177,13 +177,16 @@ def main(unused_argv):
     print(FLAGS.tpu_zone)
     print(FLAGS.tpu)
     
-    cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
-      FLAGS.tpu if (FLAGS.tpu or params.use_tpu) else '',
-      zone=FLAGS.tpu_zone,
-      project=FLAGS.gcp_project)
+    #cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
+    #  FLAGS.tpu if (FLAGS.tpu or params.use_tpu) else '',
+    #  zone=FLAGS.tpu_zone,
+    #  project=FLAGS.gcp_project)
     #tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
-
-    strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
+    tpu = tf.distribute.cluster_resolver.TPUClusterResolver() # TPU detection
+    tf.config.experimental_connect_to_cluster(tpu)
+    tf.tpu.experimental.initialize_tpu_system(tpu)
+    strategy = tf.distribute.experimental.TPUStrategy(tpu)
+    #strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
 
     print("Number of accelerators: ", strategy.num_replicas_in_sync)
 

@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: arch-tpu-herbarium-v3-256-2v
+  name: arch-tpu-herbarium-v3-256-21
 spec:
   # parallelism: 8  # Matches number of preemptables. This is the queue size.
   template:
@@ -19,7 +19,7 @@ spec:
       - name: arch-tpu-herbarium-v3-256
         # The official TensorFlow 1.15.2 image.
         # https://hub.docker.com/r/tensorflow/tensorflow
-        # image: tensorflow/tensorflow:1.15.2
+        #image: tensorflow/tensorflow:2.2
         image: gcr.io/kubeflow-images-public/tensorflow-2.1.0-notebook-gpu:1.0.0
         command: ["/bin/sh"]
         args:
