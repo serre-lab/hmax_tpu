@@ -154,12 +154,13 @@ def get_model(base_arch='Nasnet',weights='imagenet'):
     
     model.compile(optimizer='adam',
                   loss='categorical_crossentropy',
-                  metrics=[tfa.metrics.F1Score(CFG.N_CLASSES, average='macro')])
+                  metrics=[tfa.metrics.F1Score(CFG.N_CLASSES, average='macro'),'accuracy',tf.keras.metrics.TopKCategoricalAccuracy(K=1),
+                           tf.keras.metrics.TopKCategoricalAccuracy(K=3),tf.keras.metrics.TopKCategoricalAccuracy(K=5)])
     
     return model
 
 def main(unused_argv):
-    MAIN_CKP_DIR = 'ckpt'
+    MAIN_CKP_DIR = 'ckpt/'
     os.makedirs(MAIN_CKP_DIR,exist_ok=True)
     params = params_dict.ParamsDict(
       resnet_config.RESNET_CFG, resnet_config.RESNET_RESTRICTIONS)
@@ -208,6 +209,7 @@ def main(unused_argv):
                     ckpt_file = MAIN_CKP_DIR+'%s_NO_imagenet_%s_best.h5'%(arch,weights)
                 else: 
                     ckpt_file = MAIN_CKP_DIR+'%s_imagenet_%s_best.h5'%(arch,weights)
+                print('saving ckpts in : 'ckpt_file)
                 chk_callback = tf.keras.callbacks.ModelCheckpoint(ckpt_file, monitor='val_loss', 
                                                           save_best_only=True,
                                                           save_weights_only=True, 
