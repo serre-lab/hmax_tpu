@@ -159,7 +159,7 @@ def get_model(base_arch='Nasnet',weights='imagenet'):
     return model
 
 def main(unused_argv):
-    MAIN_CKP_DIR = 'gs://serrelab/prj-fossil/exported/'
+    MAIN_CKP_DIR = 'gs://serrelab/prj-fossil/'
     params = params_dict.ParamsDict(
       resnet_config.RESNET_CFG, resnet_config.RESNET_RESTRICTIONS)
     params = params_dict.override_params_dict(
@@ -182,19 +182,21 @@ def main(unused_argv):
     #  zone=FLAGS.tpu_zone,
     #  project=FLAGS.gcp_project)
     #tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
-    tpu = tf.distribute.cluster_resolver.TPUClusterResolver() # TPU detection
-    tf.config.experimental_connect_to_cluster(tpu)
-    tf.tpu.experimental.initialize_tpu_system(tpu)
-    strategy = tf.distribute.experimental.TPUStrategy(tpu)
+    #tpu = tf.distribute.cluster_resolver.TPUClusterResolver() # TPU detection
+    #tf.config.experimental_connect_to_cluster(tpu)
+    #tf.tpu.experimental.initialize_tpu_system(tpu)
+    #strategy = tf.distribute.experimental.TPUStrategy(tpu)
     #strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
-
+    cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='local')
+    tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
+    strategy = tf.distribute.TPUStrategy(cluster_resolver)
     print("Number of accelerators: ", strategy.num_replicas_in_sync)
-
+    STEPS_PER_EPOCH=7500
     with strategy.scope():
         # NasNET
-        for arch in ['resnet5-v2','Nasnet']:
+        for arch in ['Resnet50v2','Nasnet']:
             for weights in ['imagenet',None]:
-                model = get_model()
+                model = get_model(arch,weights)
                 model.summary()
                 lr_callback = tf.keras.callbacks.ReduceLROnPlateau(patience=2, min_delta=0.001,
                                                           monitor='val_loss', mode='min')
@@ -211,7 +213,7 @@ def main(unused_argv):
                             epochs=CFG.EPOCHS,
                             validation_data=get_validation_dataset(),
                             callbacks=[lr_callback, chk_callback, es_callback],
-                            verbose=2)
+                            verbose=1)
             
                 model.save_weights(MAIN_CKP_DIR+'%s_%s_last.h5'%(arch,weights))
 
