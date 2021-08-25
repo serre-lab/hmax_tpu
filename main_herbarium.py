@@ -152,10 +152,14 @@ def get_model(base_arch='Nasnet',weights='imagenet'):
         L.Dense(CFG.N_CLASSES, activation='softmax')
     ])
     
+    
     model.compile(optimizer='adam',
                   loss='categorical_crossentropy',
-                  metrics=[tfa.metrics.F1Score(CFG.N_CLASSES, average='macro'),'accuracy',tf.keras.metrics.TopKCategoricalAccuracy(k=1),
-                           tf.keras.metrics.TopKCategoricalAccuracy(k=3),tf.keras.metrics.TopKCategoricalAccuracy(k=5)])
+                  metrics=[tfa.metrics.F1Score(CFG.N_CLASSES, average='macro'),
+                           'accuracy',
+                           tf.keras.metrics.TopKCategoricalAccuracy(k=1,name='top1acc'),
+                           tf.keras.metrics.TopKCategoricalAccuracy(k=3,name='top3acc'),
+                           tf.keras.metrics.TopKCategoricalAccuracy(k=5,name='top5acc')])
     
     return model
 
