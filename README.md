@@ -263,3 +263,30 @@ Benchmarking code for [DAWNBench](http://dawn.cs.stanford.edu/benchmark/) can be
 found under the [`benchmark/`](benchmark) subdirectory. The benchmarking code
 imports the same models, inputs, and training regimes but includes some extra
 checkpointing and evaluation.
+
+## Training using VM-TPU for HERBARIUM 
+
+
+Since job is tricky so far. A work around is to start a VM interactive session. Here are the commands to start and launch the job for herbarium dataset. 
+
+````
+gcloud alpha compute tpus tpu-vm create herbarium \
+--zone=europe-west4-a \
+--accelerator-type=v3-8 \
+--version=v2-alpha
+````
+This would create a tpu vm.  Now you can ssh with: 
+
+````
+gcloud alpha compute tpus tpu-vm ssh herbarium \
+  --zone europe-west4-a
+````
+
+Then you have access to the vm shell environment. Here the only thing you have to do is to clone this repo:
+
+````
+git clone https://github.com/serre-lab/hmax_tpu
+cd hmax_tpu
+python3 main_herbarium.py
+````
+
