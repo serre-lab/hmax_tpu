@@ -36,7 +36,7 @@ FLAGS = flags.FLAGS
 class CFG:
     N_CLASSES = 64500
     IMAGE_SIZE = [256, 256]
-    EPOCHS = 25
+    EPOCHS = 2
     BATCH_SIZE = 16 * 4#strategy.num_replicas_in_sync
     
 flags.DEFINE_string(
@@ -232,7 +232,7 @@ def main(unused_argv):
                                                           mode='min')
                 try: 
                     print('loading weights from file %s'%ckpt_file)
-                    model.load(ckpt_file)
+                    model.load_weights(ckpt_file)
                 except:
                     print('loading failed, starting from scratch')
                     
