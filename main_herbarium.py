@@ -54,7 +54,7 @@ NUM_TESTING_IMAGES = count_data_items(TESTING_FILENAMES)
 TEST_STEPS = NUM_TESTING_IMAGES#//CFG.BATCH_SIZE
 NUM_VALIDATION_IMAGES = count_data_items(VALIDATION_FILENAMES)
 VALIDATION_STEPS = NUM_VALIDATION_IMAGES//CFG.BATCH_SIZE
-NUM_TEST_IMAGES = count_data_items(TEST_FILENAMES)
+NUM_TEST_IMAGES = count_data_items(TESTING_FILENAMES)
 print('Dataset: {} unlabeled test images'.format(NUM_TEST_IMAGES))
 
 def decode_image(image_data):
@@ -266,10 +266,16 @@ def main(unused_argv):
                     idx2 = NUM_TEST_IMAGES
                 else:
                     idx2 = idx1 + CFG.BATCH_SIZE
-                predictions[idx1:idx2] = np.argmax(model.predict_on_batch(image), axis=-1)
+                try:
+                    predictions[idx1:idx2] = np.argmax(model.predict_on_batch(image), axis=-1)
+                except: 
+                    print(i)
+                    print('problems here')
 
             print('Generating submission file...')
             print(predictions)
+            test_df = pd.DataFrame(predictions,columns=['Predicted'])
+            test_df.to_csv('ckpt/%s'%ckpt_file[:-2]+'csv')
 
             
 if __name__ == '__main__':
