@@ -262,7 +262,9 @@ def main(unused_argv):
             test_ds = get_testing_dataset() # since we are splitting the dataset and iterating separately on images and ids, order matters.
             print('Computing predictions...')
             test_images_ds = test_ds.map(lambda image, idnum: image)
+            print('prediction')
             probabilities = model.predict(test_images_ds, steps=TEST_STEPS)
+            print('after prediction')
             predictions = np.argmax(probabilities, axis=-1)
             print(predictions)
     
