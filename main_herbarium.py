@@ -9,7 +9,7 @@ import time
 from absl import app
 from absl import flags
 from absl import logging
-
+from tqdm.auto import tqdm
 import numpy as np
 import pandas as pd
 import re, math
@@ -54,7 +54,8 @@ NUM_TESTING_IMAGES = count_data_items(TESTING_FILENAMES)
 TEST_STEPS = NUM_TESTING_IMAGES#//CFG.BATCH_SIZE
 NUM_VALIDATION_IMAGES = count_data_items(VALIDATION_FILENAMES)
 VALIDATION_STEPS = NUM_VALIDATION_IMAGES//CFG.BATCH_SIZE
-
+NUM_TEST_IMAGES = count_data_items(TEST_FILENAMES)
+print('Dataset: {} unlabeled test images'.format(NUM_TEST_IMAGES))
 
 def decode_image(image_data):
     image = tf.image.decode_jpeg(image_data, channels=3)  # image format uint8 [0,255]
@@ -129,18 +130,14 @@ def get_validation_dataset(ordered=False):
     dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
     return dataset
 
-def get_testing_dataset():
-    dataset = load_dataset(TESTING_FILENAMES,labeled=False,ordered=True)
-    #dataset = dataset.map(onehot, num_parallel_calls=AUTO)
-    dataset = dataset.batch(1)
-    #dataset = dataset.cache()
+def get_test_dataset(ordered=False, augmented=False):
+    dataset = load_dataset(TESTING_FILENAMES, labeled=False, ordered=ordered)
+    dataset = dataset.map(get_idx, num_parallel_calls=AUTO)
+    dataset = dataset.batch(CFG.BATCH_SIZE)
     dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
     return dataset
 
-def count_data_items(filenames):
-    # the number of data items is written in the name of the .tfrec files, i.e. flowers00-230.tfrec = 230 data items
-    n = [int(re.compile(r"-([0-9]*)\.").search(filename).group(1)) for filename in filenames]
-    return np.sum(n)
+
 
 def get_model(base_arch='Nasnet',weights='imagenet'):
 
@@ -258,21 +255,23 @@ def main(unused_argv):
             #cm_predictions = np.argmax(cm_probabilities, axis=-1)
             #print("Correct   labels: ", cm_correct_labels.shape, cm_correct_labels)
             #print("Predicted labels: ", cm_predictions.shape, cm_predictions)
-            print('start testing')    
-            test_ds = get_testing_dataset() # since we are splitting the dataset and iterating separately on images and ids, order matters.
-            print('Computing predictions...')
+            print('Calculating predictions...')
+            test_ds = get_test_dataset(ordered=True)
             test_images_ds = test_ds.map(lambda image, idnum: image)
-            print('prediction')
-            probabilities = model.predict(test_images_ds, steps=TEST_STEPS)
-            print('after prediction')
-            predictions = np.argmax(probabilities, axis=-1)
+
+            predictions = np.zeros(NUM_TEST_IMAGES, dtype=np.int32)
+            for i, image in tqdm(enumerate(test_images_ds), total=NUM_TEST_IMAGES//CFG.BATCH_SIZE + 1):
+                idx1 = i*CFG.BATCH_SIZE
+                if (idx1 + CFG.BATCH_SIZE) > NUM_TEST_IMAGES:
+                    idx2 = NUM_TEST_IMAGES
+                else:
+                    idx2 = idx1 + CFG.BATCH_SIZE
+                predictions[idx1:idx2] = np.argmax(model.predict_on_batch(image), axis=-1)
+
+            print('Generating submission file...')
             print(predictions)
-    
-            print('Generating submission.csv file...')
-            test_ids_ds = test_ds.map(lambda image, idnum: idnum).unbatch()
-            test_ids = next(iter(test_ids_ds.batch(NUM_TESTING_IMAGES))).numpy().astype('U') # all in one batch
-            np.savetxt('%s_submission.csv'%ckpt_file[:-3], np.rec.fromarrays([test_ids, predictions]), fmt=['%s', '%d'], delimiter=',', header='id,label', comments='')
-        
+
+            
 if __name__ == '__main__':
   #tf.logging.set_verbosity(tf.logging.INFO)
   app.run(main)
