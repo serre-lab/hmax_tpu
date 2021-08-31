@@ -250,15 +250,15 @@ def main(unused_argv):
                     model.save_weights(MAIN_CKP_DIR+'%s_%s_last.h5'%(arch,weights))
 
             
-            cmdataset = get_validation_dataset(ordered=True) # since we are splitting the dataset and iterating separately on images and labels, order matters.
-            images_ds = cmdataset.map(lambda image, label: image)
-            labels_ds = cmdataset.map(lambda image, label: label).unbatch()
-            cm_correct_labels = next(iter(labels_ds.batch(NUM_VALIDATION_IMAGES))).numpy() # get everything as one batch
-            cm_probabilities = model.predict(images_ds, steps=VALIDATION_STEPS)
-            cm_predictions = np.argmax(cm_probabilities, axis=-1)
-            print("Correct   labels: ", cm_correct_labels.shape, cm_correct_labels)
-            print("Predicted labels: ", cm_predictions.shape, cm_predictions)
-                
+            #cmdataset = get_validation_dataset(ordered=True) # since we are splitting the dataset and iterating separately on images and labels, order matters.
+            #images_ds = cmdataset.map(lambda image, label: image)
+            #labels_ds = cmdataset.map(lambda image, label: label).unbatch()
+            #cm_correct_labels = next(iter(labels_ds.batch(NUM_VALIDATION_IMAGES))).numpy() # get everything as one batch
+            #cm_probabilities = model.predict(images_ds, steps=VALIDATION_STEPS)
+            #cm_predictions = np.argmax(cm_probabilities, axis=-1)
+            #print("Correct   labels: ", cm_correct_labels.shape, cm_correct_labels)
+            #print("Predicted labels: ", cm_predictions.shape, cm_predictions)
+            print('start testing')    
             test_ds = get_testing_dataset() # since we are splitting the dataset and iterating separately on images and ids, order matters.
             print('Computing predictions...')
             test_images_ds = test_ds.map(lambda image, idnum: image)
