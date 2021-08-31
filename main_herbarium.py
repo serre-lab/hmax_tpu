@@ -51,7 +51,7 @@ TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/te
 NUM_TRAINING_IMAGES = count_data_items(TRAINING_FILENAMES)
 STEPS_PER_EPOCH = NUM_TRAINING_IMAGES//CFG.BATCH_SIZE
 NUM_TESTING_IMAGES = count_data_items(TESTING_FILENAMES)
-TEST_STEPS = NUM_TESTING_IMAGES//CFG.BATCH_SIZE
+TEST_STEPS = NUM_TESTING_IMAGES#//CFG.BATCH_SIZE
 NUM_VALIDATION_IMAGES = count_data_items(VALIDATION_FILENAMES)
 VALIDATION_STEPS = NUM_VALIDATION_IMAGES//CFG.BATCH_SIZE
 
@@ -132,7 +132,7 @@ def get_validation_dataset(ordered=False):
 def get_testing_dataset():
     dataset = load_dataset(TESTING_FILENAMES,labeled=False,ordered=True)
     #dataset = dataset.map(onehot, num_parallel_calls=AUTO)
-    dataset = dataset.batch(CFG.BATCH_SIZE)
+    dataset = dataset.batch(1)
     #dataset = dataset.cache()
     dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
     return dataset
