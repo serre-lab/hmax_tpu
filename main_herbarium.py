@@ -121,8 +121,8 @@ def get_training_dataset():
     dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
     return dataset
 
-def get_validation_dataset():
-    dataset = load_dataset(VALIDATION_FILENAMES)
+def get_validation_dataset(ordered=False):
+    dataset = load_dataset(VALIDATION_FILENAMES,ordered=ordered)
     dataset = dataset.map(onehot, num_parallel_calls=AUTO)
     dataset = dataset.batch(CFG.BATCH_SIZE)
     #dataset = dataset.cache()
@@ -268,7 +268,7 @@ def main(unused_argv):
     
             print('Generating submission.csv file...')
             test_ids_ds = test_ds.map(lambda image, idnum: idnum).unbatch()
-            test_ids = next(iter(test_ids_ds.batch(NUM_TESTING_FILENAMES))).numpy().astype('U') # all in one batch
+            test_ids = next(iter(test_ids_ds.batch(NUM_TESTING_IMAGES))).numpy().astype('U') # all in one batch
             np.savetxt('%s_submission.csv'%ckpt_file[:-3], np.rec.fromarrays([test_ids, predictions]), fmt=['%s', '%d'], delimiter=',', header='id,label', comments='')
         
 if __name__ == '__main__':
