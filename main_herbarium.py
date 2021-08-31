@@ -131,7 +131,7 @@ def get_validation_dataset(ordered=False):
 
 def get_testing_dataset():
     dataset = load_dataset(TESTING_FILENAMES,labeled=False,ordered=True)
-    dataset = dataset.map(onehot, num_parallel_calls=AUTO)
+    #dataset = dataset.map(onehot, num_parallel_calls=AUTO)
     dataset = dataset.batch(CFG.BATCH_SIZE)
     #dataset = dataset.cache()
     dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
@@ -243,7 +243,7 @@ def main(unused_argv):
                                 validation_data=get_validation_dataset(),
                                 callbacks=[lr_callback, chk_callback, es_callback],
                                 verbose=1)
-    
+
                     if not weights: 
                         model.save_weights(MAIN_CKP_DIR+'%s_%s_last.h5'%(arch,'NO_imagenet'))
                     else: 
