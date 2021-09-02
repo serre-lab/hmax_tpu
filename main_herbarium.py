@@ -247,35 +247,35 @@ def main(unused_argv):
                         model.save_weights(MAIN_CKP_DIR+'%s_%s_last.h5'%(arch,weights))
 
             
-            #cmdataset = get_validation_dataset(ordered=True) # since we are splitting the dataset and iterating separately on images and labels, order matters.
-            #images_ds = cmdataset.map(lambda image, label: image)
-            #labels_ds = cmdataset.map(lambda image, label: label).unbatch()
-            #cm_correct_labels = next(iter(labels_ds.batch(NUM_VALIDATION_IMAGES))).numpy() # get everything as one batch
-            #cm_probabilities = model.predict(images_ds, steps=VALIDATION_STEPS)
-            #cm_predictions = np.argmax(cm_probabilities, axis=-1)
-            #print("Correct   labels: ", cm_correct_labels.shape, cm_correct_labels)
-            #print("Predicted labels: ", cm_predictions.shape, cm_predictions)
-            print('Calculating predictions...')
-            test_ds = get_test_dataset(ordered=True)
-            test_images_ds = test_ds.map(lambda image, idnum: image)
+                #cmdataset = get_validation_dataset(ordered=True) # since we are splitting the dataset and iterating separately on images and labels, order matters.
+                #images_ds = cmdataset.map(lambda image, label: image)
+                #labels_ds = cmdataset.map(lambda image, label: label).unbatch()
+                #cm_correct_labels = next(iter(labels_ds.batch(NUM_VALIDATION_IMAGES))).numpy() # get everything as one batch
+                #cm_probabilities = model.predict(images_ds, steps=VALIDATION_STEPS)
+                #cm_predictions = np.argmax(cm_probabilities, axis=-1)
+                #print("Correct   labels: ", cm_correct_labels.shape, cm_correct_labels)
+                #print("Predicted labels: ", cm_predictions.shape, cm_predictions)
+                print('Calculating predictions...')
+                test_ds = get_test_dataset(ordered=True)
+                test_images_ds = test_ds.map(lambda image, idnum: image)
 
-            predictions = np.zeros(NUM_TEST_IMAGES, dtype=np.int32)
-            for i, image in tqdm(enumerate(test_images_ds), total=NUM_TEST_IMAGES//CFG.BATCH_SIZE + 1):
-                idx1 = i*CFG.BATCH_SIZE
-                if (idx1 + CFG.BATCH_SIZE) > NUM_TEST_IMAGES:
-                    idx2 = NUM_TEST_IMAGES
-                else:
-                    idx2 = idx1 + CFG.BATCH_SIZE
-                try:
-                    predictions[idx1:idx2] = np.argmax(model.predict_on_batch(image), axis=-1)
-                except: 
-                    print(i)
-                    print('problems here')
+                predictions = np.zeros(NUM_TEST_IMAGES, dtype=np.int32)
+                for i, image in tqdm(enumerate(test_images_ds), total=NUM_TEST_IMAGES//CFG.BATCH_SIZE + 1):
+                    idx1 = i*CFG.BATCH_SIZE
+                    if (idx1 + CFG.BATCH_SIZE) > NUM_TEST_IMAGES:
+                        idx2 = NUM_TEST_IMAGES
+                    else:
+                        idx2 = idx1 + CFG.BATCH_SIZE
+                    try:
+                        predictions[idx1:idx2] = np.argmax(model.predict_on_batch(image), axis=-1)
+                    except: 
+                        print(i)
+                        print('problems here')
 
-            print('Generating submission file...')
-            print(predictions)
-            test_df = pd.DataFrame(predictions,columns=['Predicted'])
-            test_df.to_csv('ckpt/%s'%ckpt_file[:-2]+'csv')
+                print('Generating submission file...')
+                print(predictions)
+                test_df = pd.DataFrame(predictions,columns=['Predicted'])
+                test_df.to_csv('%s'%ckpt_file[:-2]+'csv')
 
             
 if __name__ == '__main__':
