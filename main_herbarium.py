@@ -130,7 +130,7 @@ def get_validation_dataset(ordered=False):
     dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
     return dataset
 
-def get_test_dataset(ordered=False, augmented=False):
+def get_test_dataset(ordered=True, augmented=False):
     dataset = load_dataset(TESTING_FILENAMES, labeled=False, ordered=ordered)
     dataset = dataset.map(get_idx, num_parallel_calls=AUTO)
     dataset = dataset.batch(CFG.BATCH_SIZE)
