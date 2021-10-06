@@ -11,6 +11,7 @@ from absl import flags
 from absl import logging
 from tqdm.auto import tqdm
 import numpy as np
+import csv
 import pandas as pd
 import re, math
 import tensorflow as tf
@@ -36,7 +37,7 @@ FLAGS = flags.FLAGS
 class CFG:
     N_CLASSES = 64500
     IMAGE_SIZE = [256, 256]
-    EPOCHS = 2
+    EPOCHS = 100
     BATCH_SIZE = 16 * 8#strategy.num_replicas_in_sync
     
 flags.DEFINE_string(
@@ -130,7 +131,7 @@ def get_validation_dataset(ordered=False):
     dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
     return dataset
 
-def get_test_dataset(ordered=False, augmented=False):
+def get_test_dataset(ordered=True, augmented=False):
     dataset = load_dataset(TESTING_FILENAMES, labeled=False, ordered=ordered)
     dataset = dataset.map(get_idx, num_parallel_calls=AUTO)
     dataset = dataset.batch(CFG.BATCH_SIZE)
@@ -256,31 +257,23 @@ def main(unused_argv):
                 #print("Correct   labels: ", cm_correct_labels.shape, cm_correct_labels)
                 #print("Predicted labels: ", cm_predictions.shape, cm_predictions)
                 print('Calculating predictions...')
-                test_ds = get_test_dataset(ordered=True)
-                test_images_ds = test_ds.map(lambda image, idnum: image)
+                test_ds = get_test_dataset()
                 
-                try:
-                    predictions = np.zeros(NUM_TEST_IMAGES, dtype=np.int32)
-                    for i, image in tqdm(enumerate(test_images_ds), total=NUM_TEST_IMAGES//CFG.BATCH_SIZE + 1):
-                        idx1 = i*CFG.BATCH_SIZE
-                        if (idx1 + CFG.BATCH_SIZE) > NUM_TEST_IMAGES:
-                            idx2 = NUM_TEST_IMAGES
-                        else:
-                            idx2 = idx1 + CFG.BATCH_SIZE
-                        try:
-                            predictions[idx1:idx2] = np.argmax(model.predict_on_batch(image), axis=-1)
-                        except: 
-                            print(i)
-                            print('problems here')
+                predictions = {}
+                
+                for imgs, idx in test_ds:
+                    idx = np.array(idx,np.int64)
+                    preds = np.argmax(model(imgs),-1)
+                    for pred_id,pred in zip(idx,preds):
+                        predictions[pred_id]=pred
+                print(len(predictions.keys()))
 
-                    print('Generating submission file...')
-                    print(predictions)
-                    test_df = pd.DataFrame(predictions,columns=['Predicted'])
-                    test_df.to_csv('%s'%ckpt_file[:-2]+'csv')
-                except: 
-                    test_df = pd.DataFrame(predictions,columns=['Predicted'])
-                    test_df.to_csv('%s'%ckpt_file[:-2]+'csv')
-                    
+                with open(f'{MAIN_CKP_DIR}_submission_{arch}_{weights}.csv','w',encoding='UTF8',newline='') as f:
+                    writer =csv.writer(f)
+                    writer.writerow(header)
+
+                    for pred_id in predictions:
+                        writer.writerow([pred_id,predictions[pred_id]])
 
             
 if __name__ == '__main__':
