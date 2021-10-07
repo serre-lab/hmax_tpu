@@ -212,6 +212,7 @@ def main(unused_argv):
         # NasNET
         for arch in ['Resnet50v2','Nasnet']:
             for weights in [None,'imagenet']:
+                print('Creating model')
                 model = get_model(arch,weights)
                 model.summary()
                 lr_callback = tf.keras.callbacks.ReduceLROnPlateau(patience=2, min_delta=0.001,
@@ -234,18 +235,17 @@ def main(unused_argv):
                 except:
                     print('loading failed, starting from scratch')
                     
-                    history = model.fit(
-                                get_training_dataset(), 
-                                steps_per_epoch=STEPS_PER_EPOCH,
-                                epochs=CFG.EPOCHS,
-                                validation_data=get_validation_dataset(),
-                                callbacks=[lr_callback, chk_callback, es_callback],
-                                verbose=1)
-
-                    if not weights: 
-                        model.save_weights(MAIN_CKP_DIR+'%s_%s_last.h5'%(arch,'NO_imagenet'))
-                    else: 
-                        model.save_weights(MAIN_CKP_DIR+'%s_%s_last.h5'%(arch,weights))
+                history = model.fit(
+                            get_training_dataset(), 
+                            steps_per_epoch=STEPS_PER_EPOCH,
+                            epochs=CFG.EPOCHS,
+                            validation_data=get_validation_dataset(),
+                            callbacks=[lr_callback, chk_callback, es_callback],
+                            verbose=1)
+                if not weights: 
+                    model.save_weights(MAIN_CKP_DIR+'%s_%s_last.h5'%(arch,'NO_imagenet'))
+                else: 
+                    model.save_weights(MAIN_CKP_DIR+'%s_%s_last.h5'%(arch,weights))
 
             
                 #cmdataset = get_validation_dataset(ordered=True) # since we are splitting the dataset and iterating separately on images and labels, order matters.
