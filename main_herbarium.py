@@ -168,7 +168,7 @@ def get_training_dataset_triplet():
 
 def get_validation_dataset_triplet(ordered=False):
     dataset = load_dataset_triplet(VALIDATION_FILENAMES,ordered=ordered)
-    dataset = dataset.map(onehot, num_parallel_calls=AUTO)
+    dataset = dataset.map(onehot_triplet, num_parallel_calls=AUTO)
     dataset = dataset.batch(CFG.BATCH_SIZE)
     #dataset = dataset.cache()
     dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
@@ -279,7 +279,7 @@ def main_triplet(unused_argv):
                             get_training_dataset_triplet(), 
                             steps_per_epoch=STEPS_PER_EPOCH,
                             epochs=CFG.EPOCHS,
-                            validation_data=get_validation_dataset(),
+                            validation_data=get_validation_dataset_triplet(),
                             callbacks=[lr_callback, chk_callback, es_callback],
                             verbose=1)
                 if not weights: 
