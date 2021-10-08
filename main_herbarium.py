@@ -26,8 +26,7 @@ from hyperparameters import params_dict
 from configs import resnet_config
 from losses import compound_loss
 from models.resnet_model_triplet import get_triplet_model
-from tf.keras.models import Model 
-from tf.keras.layers import Input, concate
+
 
 def count_data_items(filenames):
     # the number of data items is written in the name of the .tfrec files, i.e. flowers00-230.tfrec = 230 data items
@@ -246,7 +245,7 @@ def main_triplet(unused_argv):
     tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
     strategy = tf.distribute.TPUStrategy(cluster_resolver)
     print("Number of accelerators: ", strategy.num_replicas_in_sync)
-    input_image_shape = ([*CFG.IMAGE_SIZE],3)
+    input_image_shape = (256,256,3)
     lr_callback = tf.keras.callbacks.ReduceLROnPlateau(patience=2, min_delta=0.001,
                                                           monitor='val_loss', mode='min')
     es_callback = tf.keras.callbacks.EarlyStopping(patience=5, min_delta=0.001, 
@@ -256,7 +255,7 @@ def main_triplet(unused_argv):
         for arch in ['Resnet50v2','Nasnet']:
             for weights in [None,'imagenet']:
                 print('Creating model')
-                base_network = get_triplet_model()
+                base_network = get_triplet_model(input_shape=input_image_shape,nb_classes=CFG.N_CLASSES)
                 input_images = tf.keras.layers.Input(shape=input_image_shape, name='input_image')
                 input_labels = tf.keras.layers.Input(shape=(1,), name='input_label')    # input layer for labels
                 embeddings,logits = base_network([input_images])               # output of network -> embeddings
