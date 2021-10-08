@@ -24,6 +24,8 @@ from hyperparameters import common_tpu_flags
 from hyperparameters import flags_to_params
 from hyperparameters import params_dict
 from configs import resnet_config
+from losses import compound_loss
+from models.resnet_model_triplet import get_triplet_model
 
 def count_data_items(filenames):
     # the number of data items is written in the name of the .tfrec files, i.e. flowers00-230.tfrec = 230 data items
@@ -100,6 +102,18 @@ def read_labeled_tfrecord(example):
     label = example['label']
     return image, label
 
+def read_labeled_tfrecord_triplet(example):
+    LABELED_TFREC_FORMAT = {
+        'image': tf.io.FixedLenFeature([], tf.string),
+        'image_idx': tf.io.FixedLenFeature([], tf.string),
+        'label': tf.io.FixedLenFeature([], tf.int64),
+    }
+
+    example = tf.io.parse_single_example(example, LABELED_TFREC_FORMAT)
+    image = decode_image(example['image'])
+    label = example['label']
+    return ([image, label],label)
+
 def load_dataset(filenames, labeled=True, ordered=False):
     # Read from TFRecords. For optimal performance, reading from multiple files at once and
     # disregarding data order. Order does not matter since we will be shuffling the data anyway.
@@ -112,6 +126,18 @@ def load_dataset(filenames, labeled=True, ordered=False):
     dataset = dataset.with_options(ignore_order) # uses data as soon as it streams in, rather than in its original order
     dataset = dataset.map(read_labeled_tfrecord if labeled else read_unlabeled_tfrecord, num_parallel_calls=AUTO)
     return dataset
+def load_dataset_triplet(filenames, labeled=True, ordered=False):
+    # Read from TFRecords. For optimal performance, reading from multiple files at once and
+    # disregarding data order. Order does not matter since we will be shuffling the data anyway.
+
+    ignore_order = tf.data.Options()
+    if not ordered:
+        ignore_order.experimental_deterministic = False # disable order, increase speed
+
+    dataset = tf.data.TFRecordDataset(filenames, num_parallel_reads=AUTO) # automatically interleaves reads from multiple files
+    dataset = dataset.with_options(ignore_order) # uses data as soon as it streams in, rather than in its original order
+    dataset = dataset.map(read_labeled_tfrecord_triplet if labeled else read_unlabeled_tfrecord, num_parallel_calls=AUTO)
+    return dataset
 
 def get_training_dataset():
     dataset = load_dataset(TRAINING_FILENAMES)
@@ -120,6 +146,24 @@ def get_training_dataset():
     dataset = dataset.repeat() # the training dataset must repeat for several epochs
     dataset = dataset.shuffle(2048)
     dataset = dataset.batch(CFG.BATCH_SIZE)
+    dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
+    return dataset
+
+def get_training_dataset_triplet():
+    dataset = load_dataset_triplet(TRAINING_FILENAMES)
+    dataset = dataset.map(onehot, num_parallel_calls=AUTO)
+    dataset = dataset.map(data_augment, num_parallel_calls=AUTO)
+    dataset = dataset.repeat() # the training dataset must repeat for several epochs
+    dataset = dataset.shuffle(2048)
+    dataset = dataset.batch(CFG.BATCH_SIZE)
+    dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
+    return dataset
+
+def get_validation_dataset_triplet(ordered=False):
+    dataset = load_dataset_triplet(VALIDATION_FILENAMES,ordered=ordered)
+    dataset = dataset.map(onehot, num_parallel_calls=AUTO)
+    dataset = dataset.batch(CFG.BATCH_SIZE)
+    #dataset = dataset.cache()
     dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
     return dataset
 
@@ -140,7 +184,7 @@ def get_test_dataset(ordered=True, augmented=False):
 
 
 
-def get_model(base_arch='Nasnet',weights='imagenet'):
+def get_model(base_arch='Nasnet',weights='imagenet',include_top=True):
 
     if base_arch == 'Nasnet':
         base_model = tf.keras.applications.NASNetLarge(
@@ -157,10 +201,11 @@ def get_model(base_arch='Nasnet',weights='imagenet'):
                                     pooling='avg',
                                     input_shape=(*CFG.IMAGE_SIZE, 3))
                                 
-    model = tf.keras.Sequential([
+    if include_top:
+        model = tf.keras.Sequential([
         base_model,
         L.Dense(CFG.N_CLASSES, activation='softmax')
-    ])
+        ])
     
     
     model.compile(optimizer='adam',
@@ -172,6 +217,82 @@ def get_model(base_arch='Nasnet',weights='imagenet'):
                            tf.keras.metrics.TopKCategoricalAccuracy(k=5,name='top5acc')])
     
     return model
+
+def main_triplet(unused_argv):
+    MAIN_CKP_DIR = 'ckpt/'
+    os.makedirs(MAIN_CKP_DIR,exist_ok=True)
+    params = params_dict.ParamsDict(
+      resnet_config.RESNET_CFG, resnet_config.RESNET_RESTRICTIONS)
+    params = params_dict.override_params_dict(
+      params, FLAGS.config_file, is_strict=True)
+    params = params_dict.override_params_dict(
+          params, FLAGS.params_override, is_strict=True)
+    
+    params = flags_to_params.override_params_from_input_flags(params, FLAGS)
+    # Save params for transfer to GCS
+    np.savez( os.path.join(MAIN_CKP_DIR,'params.npz'), **params.as_dict())
+    
+    params.validate()
+    params.lock()
+    print(FLAGS.gcp_project)
+    print(FLAGS.tpu_zone)
+    print(FLAGS.tpu)
+    cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='local')
+    tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
+    strategy = tf.distribute.TPUStrategy(cluster_resolver)
+    print("Number of accelerators: ", strategy.num_replicas_in_sync)
+    input_image_shape = ([*CFG.IMAGE_SIZE],3)
+    lr_callback = tf.keras.callbacks.ReduceLROnPlateau(patience=2, min_delta=0.001,
+                                                          monitor='val_loss', mode='min')
+    es_callback = tf.keras.callbacks.EarlyStopping(patience=5, min_delta=0.001, 
+                                                       monitor='val_loss', mode='min',
+                                                       restore_best_weights=True)
+    with strategy.scope():
+        for arch in ['Resnet50v2','Nasnet']:
+            for weights in [None,'imagenet']:
+                print('Creating model')
+                base_network = get_triplet_model()
+                input_images = Input(shape=input_image_shape, name='input_image')
+                input_labels = Input(shape=(1,), name='input_label')    # input layer for labels
+                embeddings,logits = base_network([input_images])               # output of network -> embeddings
+                labels_plus_embeddings = concatenate([input_labels, embeddings,logits]) 
+                model = Model(inputs=[input_images, input_labels],
+                      outputs=labels_plus_embeddings)
+                model.compile(loss=compound_loss,ptimizer=opt)
+                history = model.fit(
+                            get_training_dataset_triplet(), 
+                            steps_per_epoch=STEPS_PER_EPOCH,
+                            epochs=CFG.EPOCHS,
+                            validation_data=get_validation_dataset(),
+                            callbacks=[lr_callback, chk_callback, es_callback],
+                            verbose=1)
+                if not weights: 
+                    model.save_weights(MAIN_CKP_DIR+'%s_%s_last_triplet.h5'%(arch,'NO_imagenet'))
+                else: 
+                    model.save_weights(MAIN_CKP_DIR+'%s_%s_last_triplet.h5'%(arch,weights))
+
+                print('Calculating predictions...')
+                test_ds = get_test_dataset()
+                
+                predictions = {}
+                
+                for imgs, idx in test_ds:
+                    idx = np.array(idx,np.int64)
+                    preds = np.argmax(model(imgs),-1)
+                    for pred_id,pred in zip(idx,preds):
+                        predictions[pred_id]=pred
+                print(len(predictions.keys()))
+
+                with open(f'{MAIN_CKP_DIR}_submission_{arch}_{weights}.csv','w',encoding='UTF8',newline='') as f:
+                    writer =csv.writer(f)
+                    writer.writerow(header)
+
+                    for pred_id in predictions:
+                        writer.writerow([pred_id,predictions[pred_id]])
+
+
+
+
 
 def main(unused_argv):
     MAIN_CKP_DIR = 'ckpt/'
@@ -279,3 +400,4 @@ def main(unused_argv):
 if __name__ == '__main__':
   #tf.logging.set_verbosity(tf.logging.INFO)
   app.run(main)
+  app.run(main_triplet)

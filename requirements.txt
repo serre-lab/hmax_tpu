@@ -1,5 +1,5 @@
 absl-py
-tensorflow
-tensorflow-addons==0.8.3
+tensorflow-addons
 numpy 
 pandas
+tqdm
