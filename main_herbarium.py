@@ -82,6 +82,9 @@ def onehot_triplet(image,label,label2):
 def data_augment(image, label):
     image = tf.image.random_flip_left_right(image)
     return image, label
+def data_augment_triplet(image, label,label2):
+    image = tf.image.random_flip_left_right(image)
+    return image, label,label2
 
 def read_unlabeled_tfrecord(example):
     UNLABELED_TFREC_FORMAT = {
@@ -156,7 +159,7 @@ def get_training_dataset():
 def get_training_dataset_triplet():
     dataset = load_dataset_triplet(TRAINING_FILENAMES)
     dataset = dataset.map(onehot_triplet, num_parallel_calls=AUTO)
-    dataset = dataset.map(data_augment, num_parallel_calls=AUTO)
+    dataset = dataset.map(data_augment_triplet, num_parallel_calls=AUTO)
     dataset = dataset.repeat() # the training dataset must repeat for several epochs
     dataset = dataset.shuffle(2048)
     dataset = dataset.batch(CFG.BATCH_SIZE)
@@ -259,10 +262,10 @@ def main_triplet(unused_argv):
                 input_images = tf.keras.layers.Input(shape=input_image_shape, name='input_image')
                 input_labels = tf.keras.layers.Input(shape=(1,), name='input_label')    # input layer for labels
                 embeddings,logits = base_network([input_images])               # output of network -> embeddings
-                labels_plus_embeddings = tf.keras.layersconcatenate([input_labels, embeddings,logits]) 
+                labels_plus_embeddings = tf.keras.layers.concatenate([input_labels, embeddings,logits]) 
                 model = tf.keras.models.Model(inputs=[input_images, input_labels],
                       outputs=labels_plus_embeddings)
-                model.compile(loss=compound_loss,ptimizer='adam')
+                model.compile(loss=compound_loss,optimizer='adam')
                 if not weights: 
                     ckpt_file = MAIN_CKP_DIR+'%s_NO_imagenet_%s_best.h5'%(arch,weights)
                 else: 
@@ -412,5 +415,5 @@ def main(unused_argv):
             
 if __name__ == '__main__':
   #tf.logging.set_verbosity(tf.logging.INFO)
-  app.run(main)
+  #app.run(main)
   app.run(main_triplet)
