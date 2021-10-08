@@ -26,6 +26,8 @@ from hyperparameters import params_dict
 from configs import resnet_config
 from losses import compound_loss
 from models.resnet_model_triplet import get_triplet_model
+from tf.keras.models import Model 
+from tf.keras.layers import Input, concate
 
 def count_data_items(filenames):
     # the number of data items is written in the name of the .tfrec files, i.e. flowers00-230.tfrec = 230 data items
@@ -74,6 +76,9 @@ def get_idx(image, idnum):
 
 def onehot(image,label):
     return image,tf.one_hot(label, CFG.N_CLASSES)
+
+def onehot_triplet(image,label,label2):  
+    return image,tf.one_hot(label, CFG.N_CLASSES),tf.one_hot(label2, CFG.N_CLASSES)
     
 def data_augment(image, label):
     image = tf.image.random_flip_left_right(image)
@@ -112,7 +117,7 @@ def read_labeled_tfrecord_triplet(example):
     example = tf.io.parse_single_example(example, LABELED_TFREC_FORMAT)
     image = decode_image(example['image'])
     label = example['label']
-    return ([image, label],label)
+    return image, label,label
 
 def load_dataset(filenames, labeled=True, ordered=False):
     # Read from TFRecords. For optimal performance, reading from multiple files at once and
@@ -151,7 +156,7 @@ def get_training_dataset():
 
 def get_training_dataset_triplet():
     dataset = load_dataset_triplet(TRAINING_FILENAMES)
-    dataset = dataset.map(onehot, num_parallel_calls=AUTO)
+    dataset = dataset.map(onehot_triplet, num_parallel_calls=AUTO)
     dataset = dataset.map(data_augment, num_parallel_calls=AUTO)
     dataset = dataset.repeat() # the training dataset must repeat for several epochs
     dataset = dataset.shuffle(2048)
@@ -252,13 +257,22 @@ def main_triplet(unused_argv):
             for weights in [None,'imagenet']:
                 print('Creating model')
                 base_network = get_triplet_model()
-                input_images = Input(shape=input_image_shape, name='input_image')
-                input_labels = Input(shape=(1,), name='input_label')    # input layer for labels
+                input_images = tf.keras.layers.Input(shape=input_image_shape, name='input_image')
+                input_labels = tf.keras.layers.Input(shape=(1,), name='input_label')    # input layer for labels
                 embeddings,logits = base_network([input_images])               # output of network -> embeddings
-                labels_plus_embeddings = concatenate([input_labels, embeddings,logits]) 
-                model = Model(inputs=[input_images, input_labels],
+                labels_plus_embeddings = tf.keras.layersconcatenate([input_labels, embeddings,logits]) 
+                model = tf.keras.models.Model(inputs=[input_images, input_labels],
                       outputs=labels_plus_embeddings)
-                model.compile(loss=compound_loss,ptimizer=opt)
+                model.compile(loss=compound_loss,ptimizer='adam')
+                if not weights: 
+                    ckpt_file = MAIN_CKP_DIR+'%s_NO_imagenet_%s_best.h5'%(arch,weights)
+                else: 
+                    ckpt_file = MAIN_CKP_DIR+'%s_imagenet_%s_best.h5'%(arch,weights)
+                print('saving ckpts in : ',ckpt_file)
+                chk_callback = tf.keras.callbacks.ModelCheckpoint(ckpt_file, monitor='val_loss', 
+                                                          save_best_only=True,
+                                                          save_weights_only=True, 
+                                                          mode='min')
                 history = model.fit(
                             get_training_dataset_triplet(), 
                             steps_per_epoch=STEPS_PER_EPOCH,
