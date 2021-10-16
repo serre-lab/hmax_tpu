@@ -84,7 +84,7 @@ def data_augment(image, label):
     return image, label
 def data_augment_triplet(image, label,label2):
     image = tf.image.random_flip_left_right(image)
-    return image, label,label2
+    return (image, label),label2
 
 def read_unlabeled_tfrecord(example):
     UNLABELED_TFREC_FORMAT = {
@@ -255,7 +255,7 @@ def main_triplet(unused_argv):
                                                        monitor='val_loss', mode='min',
                                                        restore_best_weights=True)
     with strategy.scope():
-        for arch in ['Resnet50v2','Nasnet']:
+        for arch in ['Resnet50v2']:
             for weights in [None,'imagenet']:
                 print('Creating model')
                 base_network = get_triplet_model(input_shape=input_image_shape,nb_classes=CFG.N_CLASSES)
