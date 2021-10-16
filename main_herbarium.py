@@ -262,7 +262,7 @@ def main_triplet(unused_argv):
                 input_images = tf.keras.layers.Input(shape=input_image_shape, name='input_image')
                 input_labels = tf.keras.layers.Input(shape=(1,), name='input_label')    # input layer for labels
                 output = base_network([input_images])               # output of network -> embeddings
-                labels_plus_embeddings = tf.keras.layers.concatenate([input_labels, output]) 
+                labels_plus_embeddings = [input_labels, output]
                 model = tf.keras.models.Model(inputs=[input_images, input_labels],
                       outputs=[labels_plus_embeddings])
                 #base_network.compile(loss=compound_loss,optimizer='adam')
