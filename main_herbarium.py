@@ -264,7 +264,7 @@ def main_triplet(unused_argv):
                 embeddings,logits = base_network([input_images])               # output of network -> embeddings
                 #labels_plus_embeddings = tf.keras.layers.concatenate([input_labels, embeddings,logits]) 
                 model = tf.keras.models.Model(inputs=[input_images, input_labels],
-                      outputs=[input_labels, embeddings,logits])
+                      outputs=[base_network.outputs,input_labels])
                 model.compile(loss=compound_loss,optimizer='adam')
                 if not weights: 
                     ckpt_file = MAIN_CKP_DIR+'%s_NO_imagenet_%s_best.h5'%(arch,weights)
