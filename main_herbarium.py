@@ -76,8 +76,8 @@ def get_idx(image, idnum):
 def onehot(image,label):
     return image,tf.one_hot(label, CFG.N_CLASSES)
 
-def onehot_triplet(image,label,label2):  
-    return image,tf.one_hot(label, CFG.N_CLASSES),tf.one_hot(label2, CFG.N_CLASSES)
+def onehot_triplet(input,label2):  
+    return input[0],tf.one_hot(input[1], CFG.N_CLASSES),tf.one_hot(label2, CFG.N_CLASSES)
     
 def data_augment(image, label):
     image = tf.image.random_flip_left_right(image)
