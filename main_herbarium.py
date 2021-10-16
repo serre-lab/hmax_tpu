@@ -275,8 +275,10 @@ def main_triplet(unused_argv):
                                                           save_best_only=True,
                                                           save_weights_only=True, 
                                                           mode='min')
+                model.summary()
+                model.compile(loss=compound_loss,optimizer='Adam')
                 history = model.fit(
-                            get_training_dataset(), 
+                            get_training_dataset_triplet(), 
                             steps_per_epoch=STEPS_PER_EPOCH,
                             epochs=CFG.EPOCHS,
                             validation_data=get_validation_dataset_triplet(),
