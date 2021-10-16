@@ -261,11 +261,11 @@ def main_triplet(unused_argv):
                 base_network = get_triplet_model(input_shape=input_image_shape,nb_classes=CFG.N_CLASSES)
                 input_images = tf.keras.layers.Input(shape=input_image_shape, name='input_image')
                 input_labels = tf.keras.layers.Input(shape=(1,), name='input_label')    # input layer for labels
-                embeddings,logits = base_network([input_images])               # output of network -> embeddings
+                #embeddings,logits = base_network([input_images])               # output of network -> embeddings
                 #labels_plus_embeddings = tf.keras.layers.concatenate([input_labels, embeddings,logits]) 
-                model = tf.keras.models.Model(inputs=[input_images, input_labels],
-                      outputs=[base_network.outputs,input_labels])
-                model.compile(loss=compound_loss,optimizer='adam')
+                #model = tf.keras.models.Model(inputs=[input_images, input_labels],
+                #      outputs=[base_network.outputs,input_labels])
+                base_network.compile(loss=compound_loss,optimizer='adam')
                 if not weights: 
                     ckpt_file = MAIN_CKP_DIR+'%s_NO_imagenet_%s_best.h5'%(arch,weights)
                 else: 
@@ -275,8 +275,8 @@ def main_triplet(unused_argv):
                                                           save_best_only=True,
                                                           save_weights_only=True, 
                                                           mode='min')
-                history = model.fit(
-                            get_training_dataset_triplet(), 
+                history = base_network.fit(
+                            get_training_dataset(), 
                             steps_per_epoch=STEPS_PER_EPOCH,
                             epochs=CFG.EPOCHS,
                             validation_data=get_validation_dataset_triplet(),

@@ -125,8 +125,8 @@ def batch_hard_triplet_loss(labels, embeddings, margin=0.15, squared=False):
     return triplet_loss
 
 @tf.function
-def compound_loss(labels, embeddings,logits, lambda_triplet = 0.1,margin=0.15, squared=False):
-
+def compound_loss(labels, embeddings, lambda_triplet = 0.1,margin=0.15, squared=False):
+    
     CrossEntropy = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
 
     triplet_loss_class = batch_hard_triplet_loss(labels,embeddings,margin)
