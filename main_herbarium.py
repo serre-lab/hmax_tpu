@@ -263,9 +263,9 @@ def main_triplet(unused_argv):
                 input_labels = tf.keras.layers.Input(shape=(1,), name='input_label')    # input layer for labels
                 embeddings,logits = base_network([input_images])               # output of network -> embeddings
                 #labels_plus_embeddings = tf.keras.layers.concatenate([input_labels,logits,embeddings]) 
-                model = tf.keras.models.Model(inputs=[input_images, input_labels],
-                      outputs=[input_labels,logits,embeddings])
-                #CrossEntropy = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+                model = tf.keras.models.Model(inputs = [input_images, input_labels],
+                                             outputs = [embeddings,logits])
+                CrossEntropy = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
                 #base_network.compile(loss=[compound_loss,CrossEntropy],optimizer='adam')
                 if not weights: 
                     ckpt_file = MAIN_CKP_DIR+'%s_NO_imagenet_%s_best.h5'%(arch,weights)
@@ -277,7 +277,7 @@ def main_triplet(unused_argv):
                                                           save_weights_only=True, 
                                                           mode='min')
                 model.summary()
-                model.compile(loss=compound_loss,optimizer='Adam')
+                model.compile(loss=[compound_loss,CrossEntropy],optimizer='Adam')
                 history = model.fit(
                             get_training_dataset_triplet(), 
                             steps_per_epoch=STEPS_PER_EPOCH,
