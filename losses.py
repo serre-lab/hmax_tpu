@@ -130,12 +130,13 @@ def compound_loss(labels, embeddings):
     margin=0.15
     squared=False
     import pdb;pdb.set_trace
-    CrossEntropy = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+    #CrossEntropy = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
 
     triplet_loss_class = batch_hard_triplet_loss(labels,embeddings,margin)
-    cce_loss = CrossEntropy(labels,logits)
+    #cce_loss = CrossEntropy(labels,logits)
 
-    return cce_loss + triplet_loss_class * lambda_triplet
+    #return cce_loss + triplet_loss_class * lambda_triplet
+    return triplet_loss_class
 
 @tf.function
 def batch_hard_domain_triplet_loss(labels, embeddings, margin, domain, squared=True):
