@@ -261,11 +261,12 @@ def main_triplet(unused_argv):
                 base_network = get_triplet_model(input_shape=input_image_shape,nb_classes=CFG.N_CLASSES)
                 input_images = tf.keras.layers.Input(shape=input_image_shape, name='input_image')
                 input_labels = tf.keras.layers.Input(shape=(1,), name='input_label')    # input layer for labels
-                output = base_network([input_images])               # output of network -> embeddings
-                labels_plus_embeddings = [input_labels, output]
+                embeddings,logits = base_network([input_images])               # output of network -> embeddings
+                #labels_plus_embeddings = tf.keras.layers.concatenate([input_labels,logits,embeddings]) 
                 model = tf.keras.models.Model(inputs=[input_images, input_labels],
-                      outputs=[labels_plus_embeddings])
-                #base_network.compile(loss=compound_loss,optimizer='adam')
+                      outputs=[input_labels,logits,embeddings])
+                #CrossEntropy = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+                #base_network.compile(loss=[compound_loss,CrossEntropy],optimizer='adam')
                 if not weights: 
                     ckpt_file = MAIN_CKP_DIR+'%s_NO_imagenet_%s_best.h5'%(arch,weights)
                 else: 
