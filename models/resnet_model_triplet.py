@@ -17,8 +17,8 @@ def get_triplet_model(input_shape = (600, 600, 3),
 
     logits_head = Dense(nb_classes)(features)
 
-    #model = tf.keras.Model(backbone.input, [embedding_head, logits_head])
+    model = tf.keras.Model(backbone.input, [embedding_head, logits_head])
     #model.compile(loss='cce')
     #model.summary()
 
-    return embedding_head,logits_head#model
+    return model
