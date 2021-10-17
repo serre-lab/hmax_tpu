@@ -258,14 +258,13 @@ def main_triplet(unused_argv):
         for arch in ['Resnet50v2']:
             for weights in [None,'imagenet']:
                 print('Creating model')
-                base_network  = get_triplet_model(input_shape=input_image_shape,nb_classes=CFG.N_CLASSES)
-                input_images = tf.keras.layers.Input(shape=input_image_shape, name='input_image')
-                input_labels = tf.keras.layers.Input(shape=(1,), name='input_label')    # input layer for labels
-                embeddings,logits = base_network([input_images])               # output of network -> embeddings
-                labels_plus_embeddings = tf.keras.layers.concatenate([input_labels,embeddings]) 
-                model = tf.keras.models.Model(inputs = [input_images, input_labels],
-                                             outputs = [labels_plus_embeddings,logits])
-                CrossEntropy = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+                model  = get_triplet_model(input_shape=input_image_shape,nb_classes=CFG.N_CLASSES)
+                #input_labels = tf.keras.layers.Input(shape=(1,), name='input_label')    # input layer for labels
+                #embeddings,logits = base_network([input_images])               # output of network -> embeddings
+                #labels_plus_embeddings = tf.keras.layers.concatenate([input_labels,embeddings]) 
+                #model = tf.keras.models.Model(inputs = [input_images, input_labels],
+                #                             outputs = [labels_plus_embeddings,logits])
+                #CrossEntropy = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
                 #base_network.compile(loss=[compound_loss,CrossEntropy],optimizer='adam')
                 if not weights: 
                     ckpt_file = MAIN_CKP_DIR+'%s_NO_imagenet_%s_best.h5'%(arch,weights)
@@ -277,7 +276,7 @@ def main_triplet(unused_argv):
                                                           save_weights_only=True, 
                                                           mode='min')
                 model.summary()
-                model.compile(loss=[compound_loss,CrossEntropy],optimizer='Adam')
+                model.compile(loss=[compound_loss],optimizer='Adam')
                 history = model.fit(
                             get_training_dataset_triplet(), 
                             steps_per_epoch=STEPS_PER_EPOCH,

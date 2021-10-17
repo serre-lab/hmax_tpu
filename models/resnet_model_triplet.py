@@ -16,8 +16,8 @@ def get_triplet_model(input_shape = (600, 600, 3),
     embedding_head = tf.nn.l2_normalize(embedding_head, -1, epsilon=1e-5)
 
     logits_head = Dense(nb_classes)(features)
-
-    model = tf.keras.Model(backbone.input, [embedding_head, logits_head])
+    input_labels = tf.keras.layers.Input(shape=(1,), name='input_label')    # input layer for labels
+    model = tf.keras.Model([backbone.input,input_labels], [input_labels,embedding_head, logits_head])
     #model.compile(loss='cce')
     #model.summary()
 
