@@ -276,12 +276,18 @@ def main_triplet(unused_argv):
                                                           save_weights_only=True, 
                                                           mode='min')
                 model.summary()
-                model.compile(loss=[compound_loss],optimizer='Adam')
+                model.compile(
+                    loss={'tf.math.l2_normalize': compound_loss, 
+                         'logits': 'categorical_crossentropy'},
+                    loss_weights={'tf.math.l2_normalize': 0.3,
+                            'logits': 1.0},
+                    optimizer='adam',
+                    metrics={'logits': 'accuracy'})
                 history = model.fit(
-                            get_training_dataset_triplet(), 
+                            get_training_dataset(), 
                             steps_per_epoch=STEPS_PER_EPOCH,
                             epochs=CFG.EPOCHS,
-                            validation_data=get_validation_dataset_triplet(),
+                            validation_data=get_validation_dataset(),
                             callbacks=[lr_callback, chk_callback, es_callback],
                             verbose=1)
                 if not weights: 
