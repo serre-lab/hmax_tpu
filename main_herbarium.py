@@ -41,7 +41,7 @@ class CFG:
     N_CLASSES = 64500
     IMAGE_SIZE = [256, 256]
     EPOCHS = 100
-    BATCH_SIZE = 16 * 8#strategy.num_replicas_in_sync
+    BATCH_SIZE = 64 * 8#strategy.num_replicas_in_sync
     
 flags.DEFINE_string(
     'export_dir',
@@ -49,9 +49,17 @@ flags.DEFINE_string(
     help=('The directory where the exported SavedModel will be stored.'))
 
 AUTO = tf.data.experimental.AUTOTUNE
-TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/train/*.tfrec')
-VALIDATION_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/validation/*.tfrec')
-TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/test/*.tfrec')
+if CFG.IMAGE_SIZE[0]==256:
+    TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/train/*.tfrec')
+    VALIDATION_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/validation/*.tfrec')
+    TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/test/*.tfrec')
+elif CFG.IMAGE_SIZE[0]==256:
+    TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/384/train-384/*.tfrec')
+    VALIDATION_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/384/val-384/*.tfrec')
+    TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/384/test-384/*.tfrec')
+else:
+    print('NOT implemented')
+    pass 
 NUM_TRAINING_IMAGES = count_data_items(TRAINING_FILENAMES)
 STEPS_PER_EPOCH = NUM_TRAINING_IMAGES//CFG.BATCH_SIZE
 NUM_TESTING_IMAGES = count_data_items(TESTING_FILENAMES)
@@ -207,6 +215,11 @@ def get_model(base_arch='Nasnet',weights='imagenet',include_top=True):
                                     include_top=False, 
                                     pooling='avg',
                                     input_shape=(*CFG.IMAGE_SIZE, 3))
+
+    elif base_arch=='EfficientNet':
+        base_model = tf.keras.applications.efficientnet.EfficientNetB0(
+                        include_top=False, weights=weights, input_tensor=None,
+                        input_shape=(*CFG.IMAGE_SIZE, 3), pooling=None )
                                 
     if include_top:
         model = tf.keras.Sequential([
@@ -290,6 +303,7 @@ def main_triplet(unused_argv):
                             validation_data=get_validation_dataset(),
                             callbacks=[lr_callback, chk_callback, es_callback],
                             verbose=1)
+                
                 if not weights: 
                     model.save_weights(MAIN_CKP_DIR+'%s_%s_last_triplet.h5'%(arch,'NO_imagenet'))
                 else: 
@@ -306,7 +320,7 @@ def main_triplet(unused_argv):
                     for pred_id,pred in zip(idx,preds):
                         predictions[pred_id]=pred
                 print(len(predictions.keys()))
-
+                header = ['Id','Prediction']
                 with open(f'{MAIN_CKP_DIR}_submission_{arch}_{weights}.csv','w',encoding='UTF8',newline='') as f:
                     writer =csv.writer(f)
                     writer.writerow(header)
@@ -355,7 +369,7 @@ def main(unused_argv):
     
     with strategy.scope():
         # NasNET
-        for arch in ['Resnet50v2','Nasnet']:
+        for arch in ['EfficientNet','Resnet50v2']:
             for weights in [None,'imagenet']:
                 print('Creating model')
                 model = get_model(arch,weights)
@@ -366,9 +380,9 @@ def main(unused_argv):
                                                        monitor='val_loss', mode='min',
                                                        restore_best_weights=True)
                 if not weights: 
-                    ckpt_file = MAIN_CKP_DIR+'%s_NO_imagenet_%s_best.h5'%(arch,weights)
+                    ckpt_file = MAIN_CKP_DIR+'%s_NO_imagenet_%s_best_%d.h5'%(arch,weights,CFG.IMAGE_SIZE[0])
                 else: 
-                    ckpt_file = MAIN_CKP_DIR+'%s_imagenet_%s_best.h5'%(arch,weights)
+                    ckpt_file = MAIN_CKP_DIR+'%s_imagenet_%s_best_%d.h5'%(arch,weights,CFG.IMAGE_SIZE[0])
                 print('saving ckpts in : ',ckpt_file)
                 chk_callback = tf.keras.callbacks.ModelCheckpoint(ckpt_file, monitor='val_loss', 
                                                           save_best_only=True,
@@ -387,10 +401,14 @@ def main(unused_argv):
                             validation_data=get_validation_dataset(),
                             callbacks=[lr_callback, chk_callback, es_callback],
                             verbose=1)
+                df= pd.DataFrame(history.history)
+                
                 if not weights: 
                     model.save_weights(MAIN_CKP_DIR+'%s_%s_last.h5'%(arch,'NO_imagenet'))
+                    df.to_csv(MAIN_CKP_DIR+'%s_%s_last_history.csv'%(arch,'NO_imagenet'))
                 else: 
                     model.save_weights(MAIN_CKP_DIR+'%s_%s_last.h5'%(arch,weights))
+                    df.to_csv(MAIN_CKP_DIR+'%s_%s_last_history.csv'%(arch,weights))
 
             
                 #cmdataset = get_validation_dataset(ordered=True) # since we are splitting the dataset and iterating separately on images and labels, order matters.
@@ -412,8 +430,8 @@ def main(unused_argv):
                     for pred_id,pred in zip(idx,preds):
                         predictions[pred_id]=pred
                 print(len(predictions.keys()))
-
-                with open(f'{MAIN_CKP_DIR}_submission_{arch}_{weights}.csv','w',encoding='UTF8',newline='') as f:
+                header = ['Id','Prediction']
+                with open(f'{MAIN_CKP_DIR}_submission_{arch}_{weights}_{CFG.IMAGE_SIZE[0]}.csv','w',encoding='UTF8',newline='') as f:
                     writer =csv.writer(f)
                     writer.writerow(header)
 
@@ -423,5 +441,5 @@ def main(unused_argv):
             
 if __name__ == '__main__':
   #tf.logging.set_verbosity(tf.logging.INFO)
-  #app.run(main)
-  app.run(main_triplet)
+  app.run(main)
+  #app.run(main_triplet)
