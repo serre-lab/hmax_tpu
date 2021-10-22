@@ -39,7 +39,7 @@ FLAGS = flags.FLAGS
 #import efficientnet.tfkeras as efn
 class CFG:
     N_CLASSES = 64500
-    IMAGE_SIZE = [256, 256]
+    IMAGE_SIZE = [384, 384]
     EPOCHS = 100
     BATCH_SIZE = 64 * 8#strategy.num_replicas_in_sync
     
@@ -53,7 +53,7 @@ if CFG.IMAGE_SIZE[0]==256:
     TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/train/*.tfrec')
     VALIDATION_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/validation/*.tfrec')
     TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/test/*.tfrec')
-elif CFG.IMAGE_SIZE[0]==256:
+elif CFG.IMAGE_SIZE[0]==384:
     TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/384/train-384/*.tfrec')
     VALIDATION_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/384/val-384/*.tfrec')
     TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/384/test-384/*.tfrec')
