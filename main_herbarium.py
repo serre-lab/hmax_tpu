@@ -206,8 +206,7 @@ def get_model(base_arch='Nasnet',weights='imagenet',include_top=True):
                                      input_shape=(*CFG.IMAGE_SIZE, 3),
                                     include_top=False,
                                     weights=weights,
-                                    input_tensor=None,
-                                    pooling=None,
+                                    pooling='avg',
                                     
                             )
     elif base_arch == 'Resnet50v2':
