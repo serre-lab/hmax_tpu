@@ -89,6 +89,7 @@ def batch_hard_triplet_loss(labels, embeddings, margin=0.15, squared=False):
     Returns:
         triplet_loss: scalar tensor containing the triplet loss
     """
+    labels = tf.argmax(labels,-1)
     # Get the pairwise distance matrix
     pairwise_dist = _pairwise_distances(embeddings, squared=squared)
 

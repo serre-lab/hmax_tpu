@@ -292,6 +292,11 @@ def main_triplet(unused_argv):
                                                           save_best_only=True,
                                                           save_weights_only=True, 
                                                           mode='min')
+                tb_callback = tf.keras.callbacks.TensorBoard(
+                        log_dir=MAIN_CKP_DIR+'logs', histogram_freq=0, write_graph=True,
+                        write_images=False, write_steps_per_second=False, update_freq='epoch',
+                        profile_batch=2, embeddings_freq=0, embeddings_metadata=None
+                            )
                 
                 model.summary()
                 model.compile(loss={'embedding':batch_hard_triplet_loss, 
@@ -299,13 +304,17 @@ def main_triplet(unused_argv):
                               loss_weights={'embedding': 0.5,
                             'logits': 1.0},
                             optimizer='adam',
-                            metrics={'logits': 'accuracy'},)
+                            metrics={'logits': [tfa.metrics.F1Score(CFG.N_CLASSES, average='macro'),
+                           'accuracy',
+                           tf.keras.metrics.TopKCategoricalAccuracy(k=1,name='top1acc'),
+                           tf.keras.metrics.TopKCategoricalAccuracy(k=3,name='top3acc'),
+                           tf.keras.metrics.TopKCategoricalAccuracy(k=5,name='top5acc')]},)
                 history = model.fit(
                             get_training_dataset().repeat(), 
                             steps_per_epoch=STEPS_PER_EPOCH,
                             epochs=CFG.EPOCHS,
                             validation_data=get_validation_dataset(),
-                            callbacks=[lr_callback, chk_callback, es_callback],
+                            callbacks=[lr_callback, chk_callback, es_callback,tb_callback],
                             verbose=1)
                 df= pd.DataFrame(history.history)
                 
@@ -449,5 +458,5 @@ def main(unused_argv):
             
 if __name__ == '__main__':
   #tf.logging.set_verbosity(tf.logging.INFO)
-  app.run(main)
-  #app.run(main_triplet)
+  #app.run(main)
+  app.run(main_triplet)
