@@ -210,20 +210,21 @@ def get_model(base_arch='Nasnet',weights='imagenet',include_top=True):
                                     
                             )
     elif base_arch == 'Resnet50v2':
-        conv_model = tf.keras.applications.ResNet50V2(weights=weights, 
+        base_model = tf.keras.applications.ResNet50V2(weights=weights, 
                                     include_top=False, 
                                     pooling='avg',
                                     input_shape=(*CFG.IMAGE_SIZE, 3))
+        
+
+    elif base_arch=='EfficientNet':
+        conv_model = tf.keras.applications.efficientnet.EfficientNetB0(
+                        include_top=False, weights=weights,
+                        input_shape=(*CFG.IMAGE_SIZE, 3), )
         base_model = tf.keras.models.Sequential()
         base_model.add(conv_model)
         base_model.add(L.GlobalMaxPooling2D(name="gap"))
         #avoid overfitting
         base_model.add(L.Dropout(dropout_rate=0.2, name="dropout_out"))
-
-    elif base_arch=='EfficientNet':
-        base_model = tf.keras.applications.efficientnet.EfficientNetB0(
-                        include_top=False, weights=weights, input_tensor=None,
-                        input_shape=(*CFG.IMAGE_SIZE, 3), pooling=None )
                                 
     if include_top:
         model = tf.keras.Sequential([
