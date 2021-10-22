@@ -24,7 +24,7 @@ from hyperparameters import common_tpu_flags
 from hyperparameters import flags_to_params
 from hyperparameters import params_dict
 from configs import resnet_config
-from losses import compound_loss
+from losses import batch_hard_triplet_loss
 from models.resnet_model_triplet import get_triplet_model
 
 
@@ -266,24 +266,23 @@ def main_triplet(unused_argv):
     tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
     strategy = tf.distribute.TPUStrategy(cluster_resolver)
     print("Number of accelerators: ", strategy.num_replicas_in_sync)
-    input_image_shape = (256,256,3)
+    input_image_shape = (CFG.IMAGE_SIZE[0],CFG.IMAGE_SIZE[1],3)
     lr_callback = tf.keras.callbacks.ReduceLROnPlateau(patience=2, min_delta=0.001,
                                                           monitor='val_loss', mode='min')
     es_callback = tf.keras.callbacks.EarlyStopping(patience=5, min_delta=0.001, 
                                                        monitor='val_loss', mode='min',
                                                        restore_best_weights=True)
+    
+    
+    
+    
+
     with strategy.scope():
         for arch in ['Resnet50v2']:
             for weights in [None,'imagenet']:
                 print('Creating model')
-                model  = get_triplet_model(input_shape=input_image_shape,nb_classes=CFG.N_CLASSES)
-                #input_labels = tf.keras.layers.Input(shape=(1,), name='input_label')    # input layer for labels
-                #embeddings,logits = base_network([input_images])               # output of network -> embeddings
-                #labels_plus_embeddings = tf.keras.layers.concatenate([input_labels,embeddings]) 
-                #model = tf.keras.models.Model(inputs = [input_images, input_labels],
-                #                             outputs = [labels_plus_embeddings,logits])
-                #CrossEntropy = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
-                #base_network.compile(loss=[compound_loss,CrossEntropy],optimizer='adam')
+                model  = get_triplet_model(input_shape=input_image_shape,embedding_units=1024,nb_classes=CFG.N_CLASSES)
+                
                 if not weights: 
                     ckpt_file = MAIN_CKP_DIR+'%s_NO_imagenet_%s_best.h5'%(arch,weights)
                 else: 
@@ -293,26 +292,30 @@ def main_triplet(unused_argv):
                                                           save_best_only=True,
                                                           save_weights_only=True, 
                                                           mode='min')
+                
                 model.summary()
-                model.compile(
-                    loss={'tf.math.l2_normalize': compound_loss, 
-                         'logits': 'categorical_crossentropy'},
-                    loss_weights={'tf.math.l2_normalize': 0.3,
+                model.compile(loss={'embedding':batch_hard_triplet_loss, 
+                                    'logits': 'categorical_crossentropy'},
+                              loss_weights={'embedding': 0.5,
                             'logits': 1.0},
-                    optimizer='adam',
-                    metrics={'logits': 'accuracy'})
+                            optimizer='adam',
+                            metrics={'logits': 'accuracy'},)
                 history = model.fit(
-                            get_training_dataset(), 
+                            get_training_dataset().repeat(), 
                             steps_per_epoch=STEPS_PER_EPOCH,
                             epochs=CFG.EPOCHS,
                             validation_data=get_validation_dataset(),
                             callbacks=[lr_callback, chk_callback, es_callback],
                             verbose=1)
+                df= pd.DataFrame(history.history)
+                
                 
                 if not weights: 
                     model.save_weights(MAIN_CKP_DIR+'%s_%s_last_triplet.h5'%(arch,'NO_imagenet'))
+                    df.to_csv(MAIN_CKP_DIR+'%s_%s_last_triplet_logger.csv'%(arch,'NO_imagenet'))
                 else: 
                     model.save_weights(MAIN_CKP_DIR+'%s_%s_last_triplet.h5'%(arch,weights))
+                    df.to_csv(MAIN_CKP_DIR+'%s_%s_last_triplet_logger.csv'%(arch,'imagenet'))
 
                 print('Calculating predictions...')
                 test_ds = get_test_dataset()
