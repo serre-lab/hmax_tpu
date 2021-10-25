@@ -40,7 +40,7 @@ FLAGS = flags.FLAGS
 class CFG:
     N_CLASSES = 64500
     IMAGE_SIZE = [384, 384]
-    EPOCHS = 100
+    EPOCHS = 20
     BATCH_SIZE = 64 * 8#strategy.num_replicas_in_sync
     
 flags.DEFINE_string(
@@ -337,8 +337,8 @@ def main_triplet(unused_argv):
                     for pred_id,pred in zip(idx,preds):
                         predictions[pred_id]=pred
                 print(len(predictions.keys()))
-                header = ['Id','Prediction']
-                with open(f'{MAIN_CKP_DIR}_submission_{arch}_{weights}.csv','w',encoding='UTF8',newline='') as f:
+                header = ['Id','Predicted']
+                with open(f'{MAIN_CKP_DIR}_submission_triplet_{arch}_{weights}.csv','w',encoding='UTF8',newline='') as f:
                     writer =csv.writer(f)
                     writer.writerow(header)
 
@@ -447,7 +447,7 @@ def main(unused_argv):
                     for pred_id,pred in zip(idx,preds):
                         predictions[pred_id]=pred
                 print(len(predictions.keys()))
-                header = ['Id','Prediction']
+                header = ['Id','Predicted']
                 with open(f'{MAIN_CKP_DIR}_submission_{arch}_{weights}_{CFG.IMAGE_SIZE[0]}.csv','w',encoding='UTF8',newline='') as f:
                     writer =csv.writer(f)
                     writer.writerow(header)
