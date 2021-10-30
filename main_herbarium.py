@@ -26,7 +26,7 @@ from hyperparameters import params_dict
 from configs import resnet_config
 from losses import batch_hard_triplet_loss
 from models.resnet_model_triplet import get_triplet_model
-
+import random
 
 def count_data_items(filenames):
     # the number of data items is written in the name of the .tfrec files, i.e. flowers00-230.tfrec = 230 data items
@@ -57,6 +57,12 @@ elif CFG.IMAGE_SIZE[0]==384:
     TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/384/train-384/*.tfrec')
     VALIDATION_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/384/val-384/*.tfrec')
     TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/384/test-384/*.tfrec')
+elif CFG.IMAGE_SIZE[0]==600:
+    TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train/*.tfrec')
+    random.shuffle(TRAINING_FILENAMES)
+    TRAINING_FILENAMES = TRAINING_FILENAMES[:int(len(TRAINING_FILENAMES)*0.9)]
+    VALIDATION_FILENAMES = TRAINING_FILENAMES[int(len(TRAINING_FILENAMES)*0.9):] #tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train/*.tfrec')
+    TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/test/*.tfrec')
 else:
     print('NOT implemented')
     pass 
@@ -268,30 +274,30 @@ def main_triplet(unused_argv):
     print("Number of accelerators: ", strategy.num_replicas_in_sync)
     input_image_shape = (CFG.IMAGE_SIZE[0],CFG.IMAGE_SIZE[1],3)
     lr_callback = tf.keras.callbacks.ReduceLROnPlateau(patience=2, min_delta=0.001,
-                                                          monitor='val_loss', mode='min')
+                                                          monitor='val_logits_f1_score', mode='max')
     es_callback = tf.keras.callbacks.EarlyStopping(patience=5, min_delta=0.001, 
-                                                       monitor='val_loss', mode='min',
+                                                       monitor='val_logits_f1_score', mode='max',
                                                        restore_best_weights=True)
     
     
     
-    
+    embeddings_unit = 256
 
     with strategy.scope():
         for arch in ['Resnet50v2']:
             for weights in [None,'imagenet']:
                 print('Creating model')
-                model  = get_triplet_model(input_shape=input_image_shape,embedding_units=1024,nb_classes=CFG.N_CLASSES)
+                model  = get_triplet_model(input_shape=input_image_shape,embedding_units=256,nb_classes=CFG.N_CLASSES)
                 
                 if not weights: 
                     ckpt_file = MAIN_CKP_DIR+'%s_NO_imagenet_%s_best.h5'%(arch,weights)
                 else: 
                     ckpt_file = MAIN_CKP_DIR+'%s_imagenet_%s_best.h5'%(arch,weights)
                 print('saving ckpts in : ',ckpt_file)
-                chk_callback = tf.keras.callbacks.ModelCheckpoint(ckpt_file, monitor='val_loss', 
+                chk_callback = tf.keras.callbacks.ModelCheckpoint(ckpt_file, monitor='val_logits_f1_score', 
                                                           save_best_only=True,
                                                           save_weights_only=True, 
-                                                          mode='min')
+                                                          mode='max')
                 tb_callback = tf.keras.callbacks.TensorBoard(
                         log_dir=MAIN_CKP_DIR+'logs', histogram_freq=0, write_graph=True,
                         write_images=False, write_steps_per_second=False, update_freq='epoch',
@@ -301,7 +307,7 @@ def main_triplet(unused_argv):
                 model.summary()
                 model.compile(loss={'embedding':batch_hard_triplet_loss, 
                                     'logits': 'categorical_crossentropy'},
-                              loss_weights={'embedding': 0.5,
+                              loss_weights={'embedding': 0.3,
                             'logits': 1.0},
                             optimizer='adam',
                             metrics={'logits': [tfa.metrics.F1Score(CFG.N_CLASSES, average='macro'),
@@ -320,11 +326,11 @@ def main_triplet(unused_argv):
                 
                 
                 if not weights: 
-                    model.save_weights(MAIN_CKP_DIR+'%s_%s_last_triplet.h5'%(arch,'NO_imagenet'))
-                    df.to_csv(MAIN_CKP_DIR+'%s_%s_last_triplet_logger.csv'%(arch,'NO_imagenet'))
+                    model.save_weights(MAIN_CKP_DIR+'%s_%s_last_triplet_%d.h5'%(arch,'NO_imagenet',embeddings_unit))
+                    df.to_csv(MAIN_CKP_DIR+'%s_%s_last_triplet_logger_%d.csv'%(arch,'NO_imagenet',embeddings_unit))
                 else: 
-                    model.save_weights(MAIN_CKP_DIR+'%s_%s_last_triplet.h5'%(arch,weights))
-                    df.to_csv(MAIN_CKP_DIR+'%s_%s_last_triplet_logger.csv'%(arch,'imagenet'))
+                    model.save_weights(MAIN_CKP_DIR+'%s_%s_last_triplet_%d.h5'%(arch,weights,embeddings_unit))
+                    df.to_csv(MAIN_CKP_DIR+'%s_%s_last_triplet_logger_%d.csv'%(arch,'imagenet',embeddings_unit))
 
                 print('Calculating predictions...')
                 test_ds = get_test_dataset()
@@ -338,7 +344,7 @@ def main_triplet(unused_argv):
                         predictions[pred_id]=pred
                 print(len(predictions.keys()))
                 header = ['Id','Predicted']
-                with open(f'{MAIN_CKP_DIR}_submission_triplet_{arch}_{weights}.csv','w',encoding='UTF8',newline='') as f:
+                with open(f'{MAIN_CKP_DIR}_submission_triplet_{arch}_{weights}_{embeddings_unit}.csv','w',encoding='UTF8',newline='') as f:
                     writer =csv.writer(f)
                     writer.writerow(header)
 
@@ -458,5 +464,5 @@ def main(unused_argv):
             
 if __name__ == '__main__':
   #tf.logging.set_verbosity(tf.logging.INFO)
-  #app.run(main)
-  app.run(main_triplet)
+  app.run(main)
+  #app.run(main_triplet)
