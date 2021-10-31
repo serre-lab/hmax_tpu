@@ -120,12 +120,12 @@ if __name__ == '__main__':
     print('starting mp')
     #pool = mp.Pool(processes=4)
     workers = 8
-    mp.freeze_support()
+    #mp.freeze_support()
     for tfrec_num in range(num_tfrecords):
         samples = annotations[(tfrec_num * num_samples) : ((tfrec_num + 1) * num_samples)]
-        pool.map(make_tfrecords,args=(tfrecords_dir,tfrec_num,samples,images))
-        #p = mp.Process(make_tfrecords,args=(tfrecords_dir,tfrec_num,samples,images))
-        #p.start()
+        #pool.map(make_tfrecords,args=(tfrecords_dir,tfrec_num,samples,images))
+        p = mp.Process(make_tfrecords,args=(tfrecords_dir,tfrec_num,samples,images))
+        p.start()
         #p.join()
 
         
