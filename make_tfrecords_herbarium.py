@@ -80,7 +80,7 @@ def parse_tfrecord_fn(example):
     example["image"] = tf.io.decode_jpeg(example["image"], channels=3)
     return example
 
-def make_tfrecords(tfrecords_dir,tfrec_num,samples,images):
+def make_tfrecords_train(tfrecords_dir,tfrec_num,samples,images):
     #= args[0],args[1],args[2],args[3]
     print( tfrecords_dir + "/file_%.5i-%i.tfrec" % (tfrec_num, len(samples)))
     with tf.io.TFRecordWriter(
@@ -96,6 +96,18 @@ def make_tfrecords(tfrecords_dir,tfrec_num,samples,images):
                     example = create_example(image, sample['image_id'], sample['category_id'])
                     writer.write(example.SerializeToString())
 
+def make_tfrecords_test(tfrecords_dir,tfrec_num,samples):
+        
+        with tf.io.TFRecordWriter(
+            tfrecords_dir + "/file_%.2i-%i.tfrec" % (tfrec_num, len(samples))
+        ) as writer:
+            for img in samples:
+                image_path = f"{parent}/test/{img['file_name']}"
+                image = tf.io.decode_jpeg(tf.io.read_file(image_path))
+                image = tf.image.resize(image,(600,600))
+                image = tf.cast(image, tf.uint8)
+                example = create_unlabeled_example(image, img['id'])
+                writer.write(example.SerializeToString())
 
             
 if __name__ == '__main__':
@@ -119,14 +131,14 @@ if __name__ == '__main__':
         os.makedirs(tfrecords_dir)  # creating TFRecords output folder
     print('starting mp')
     #pool = mp.Pool(processes=4)
-    workers = 8
+    workers = 19
     #mp.freeze_support()
     prcs = []
     for tfrec_num in range(num_tfrecords):
         samples = annotations[(tfrec_num * num_samples) : ((tfrec_num + 1) * num_samples)]
         #pool.map(make_tfrecords,args=(tfrecords_dir,tfrec_num,samples,images))
 
-        p = mp.Process(target=make_tfrecords,args=(tfrecords_dir,tfrec_num,samples,images))
+        p = mp.Process(target=make_tfrecords_train,args=(tfrecords_dir,tfrec_num,samples,images))
         p.start()
         prcs.append(p)
         if tfrec_num%workers==0 and tfrec_num>0: 
@@ -134,3 +146,24 @@ if __name__ == '__main__':
                 p.join()
             prcs =[]
         
+    tfrecords_dir = '/cifs/data/tserre_lrs/projects/prj_fossils/data/raw_data/Herbarium_2021_FGVC8/tfrecords/test_2'
+    annotations = test_data['images']
+    num_samples = 1000
+    num_tfrecords = len(annotations) // num_samples
+    if len(annotations) % num_samples:
+        num_tfrecords += 1  # add one record if there are any remaining samples
+
+    if not os.path.exists(tfrecords_dir):
+        os.makedirs(tfrecords_dir)  # creating TFRecords output folder  
+
+    prcs =[]
+    for tfrec_num in range(num_tfrecords):
+        samples = annotations[(tfrec_num * num_samples) : ((tfrec_num + 1) * num_samples)]
+        p = mp.Process(target=make_tfrecords_test,args=(tfrecords_dir,tfrec_num,samples))
+        p.start()
+        
+        prcs.append(p)
+        if tfrec_num%workers==0 and tfrec_num>0: 
+            for p in prcs:
+                p.join()
+            prcs =[]
