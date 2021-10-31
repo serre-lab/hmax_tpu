@@ -39,9 +39,9 @@ FLAGS = flags.FLAGS
 #import efficientnet.tfkeras as efn
 class CFG:
     N_CLASSES = 64500
-    IMAGE_SIZE = [384, 384]
+    IMAGE_SIZE = [600, 600]
     EPOCHS = 20
-    BATCH_SIZE = 64 * 8#strategy.num_replicas_in_sync
+    BATCH_SIZE = 32 * 8#strategy.num_replicas_in_sync
     
 flags.DEFINE_string(
     'export_dir',
@@ -61,6 +61,7 @@ elif CFG.IMAGE_SIZE[0]==600:
     TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train/*.tfrec')
     random.shuffle(TRAINING_FILENAMES)
     TRAINING_FILENAMES = TRAINING_FILENAMES[:int(len(TRAINING_FILENAMES)*0.9)]
+    TRAINING_FILENAMES = [f  for f in TRAINING_FILENAMES if 'file_00287-1000.tfrec'!=f ]
     VALIDATION_FILENAMES = TRAINING_FILENAMES[int(len(TRAINING_FILENAMES)*0.9):] #tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train/*.tfrec')
     TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/test/*.tfrec')
 else:
@@ -392,7 +393,7 @@ def main(unused_argv):
     
     with strategy.scope():
         # NasNET
-        for arch in ['EfficientNet','Resnet50v2']:
+        for arch in ['Resnet50v2']:
             for weights in [None,'imagenet']:
                 print('Creating model')
                 model = get_model(arch,weights)
