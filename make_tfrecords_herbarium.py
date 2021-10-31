@@ -80,6 +80,7 @@ def parse_tfrecord_fn(example):
     return example
 
 def make_tfrecords(tfrecords_dir,tfrec_num,samples,images):
+    print( tfrecords_dir + "/file_%.5i-%i.tfrec" % (tfrec_num, len(samples)))
     with tf.io.TFRecordWriter(
         tfrecords_dir + "/file_%.5i-%i.tfrec" % (tfrec_num, len(samples))
     ) as writer:
@@ -114,11 +115,15 @@ if __name__ == '__main__':
 
     if not os.path.exists(tfrecords_dir):
         os.makedirs(tfrecords_dir)  # creating TFRecords output folder
-
+    print('starting mp')
     #pool = mp.Pool(processes=4)
     workers = 8
-    with mp.Pool(processes=workers) as pool:
-        for tfrec_num in range(num_tfrecords):
-            samples = annotations[(tfrec_num * num_samples) : ((tfrec_num + 1) * num_samples)]
-            pool.apply_async(make_tfrecords,args=(tfrecords_dir,tfrec_num,samples,images))
+    #with mp.Pool(processes=workers) as pool:
+    for tfrec_num in range(num_tfrecords):
+        samples = annotations[(tfrec_num * num_samples) : ((tfrec_num + 1) * num_samples)]
+        #pool.apply_async(make_tfrecords,args=(tfrecords_dir,tfrec_num,samples,images))
+        p = mp.Process(make_tfrecords,args=(tfrecords_dir,tfrec_num,samples,images))
+        p.start()
+        p.join()
+
         
