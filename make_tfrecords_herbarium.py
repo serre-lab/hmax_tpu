@@ -124,7 +124,7 @@ if __name__ == '__main__':
     for tfrec_num in range(num_tfrecords):
         samples = annotations[(tfrec_num * num_samples) : ((tfrec_num + 1) * num_samples)]
         #pool.map(make_tfrecords,args=(tfrecords_dir,tfrec_num,samples,images))
-        p = mp.Process(make_tfrecords,args=(tfrecords_dir,tfrec_num,samples,images))
+        p = mp.Process(target=make_tfrecords,args=(tfrecords_dir,tfrec_num,samples,images))
         p.start()
         #p.join()
 
