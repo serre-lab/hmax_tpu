@@ -2,6 +2,7 @@ import os, cv2
 import tensorflow as tf
 import json
 import multiprocessing as mp
+#from multiprocessing import Pool, freeze_support
 
 def image_feature(value):
     """Returns a bytes_list from a string / byte."""
@@ -118,12 +119,12 @@ if __name__ == '__main__':
     print('starting mp')
     #pool = mp.Pool(processes=4)
     workers = 8
-    #with mp.Pool(processes=workers) as pool:
+    mp.freeze_support()
     for tfrec_num in range(num_tfrecords):
         samples = annotations[(tfrec_num * num_samples) : ((tfrec_num + 1) * num_samples)]
-        #pool.apply_async(make_tfrecords,args=(tfrecords_dir,tfrec_num,samples,images))
-        p = mp.Process(make_tfrecords,args=(tfrecords_dir,tfrec_num,samples,images))
-        p.start()
-        p.join()
+        pool.map(make_tfrecords,args=(tfrecords_dir,tfrec_num,samples,images))
+        #p = mp.Process(make_tfrecords,args=(tfrecords_dir,tfrec_num,samples,images))
+        #p.start()
+        #p.join()
 
         
