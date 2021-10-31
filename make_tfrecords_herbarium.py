@@ -80,7 +80,8 @@ def parse_tfrecord_fn(example):
     example["image"] = tf.io.decode_jpeg(example["image"], channels=3)
     return example
 
-def make_tfrecords(tfrecords_dir,tfrec_num,samples,images):
+def make_tfrecords(args):
+    tfrecords_dir,tfrec_num,samples,images = args[0],args[1],args[2],args[3]
     print( tfrecords_dir + "/file_%.5i-%i.tfrec" % (tfrec_num, len(samples)))
     with tf.io.TFRecordWriter(
         tfrecords_dir + "/file_%.5i-%i.tfrec" % (tfrec_num, len(samples))
