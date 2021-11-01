@@ -41,8 +41,15 @@ class CFG:
     N_CLASSES = 64500
     IMAGE_SIZE = [600, 600]
     EPOCHS = 20
-    BATCH_SIZE = 32 * 8#strategy.num_replicas_in_sync
-    
+    if IMAGE_SIZE[0] == 256:
+        BATCH_SIZE = 64 * 8#strategy.num_replicas_in_sync
+    elif IMAGE_SIZE[0] == 384:
+        BATCH_SIZE = 32 * 8#strategy.num_replicas_in_sync
+    elif IMAGE_SIZE[0] == 600:
+        BATCH_SIZE = 16 * 8#strategy.num_replicas_in_sync
+    else:
+        BATCH_SIZE = 16 * 8
+
 flags.DEFINE_string(
     'export_dir',
     default=None,
@@ -58,12 +65,12 @@ elif CFG.IMAGE_SIZE[0]==384:
     VALIDATION_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/384/val-384/*.tfrec')
     TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/384/test-384/*.tfrec')
 elif CFG.IMAGE_SIZE[0]==600:
-    TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train/*.tfrec')
+    TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train_2/*.tfrec')
     random.shuffle(TRAINING_FILENAMES)
     TRAINING_FILENAMES = TRAINING_FILENAMES[:int(len(TRAINING_FILENAMES)*0.9)]
-    TRAINING_FILENAMES = [f  for f in TRAINING_FILENAMES if 'file_00287-1000.tfrec'!=f ]
+    TRAINING_FILENAMES = [f  for f in TRAINING_FILENAMES]
     VALIDATION_FILENAMES = TRAINING_FILENAMES[int(len(TRAINING_FILENAMES)*0.9):] #tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train/*.tfrec')
-    TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/test/*.tfrec')
+    TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/test_2/*.tfrec')
 else:
     print('NOT implemented')
     pass 
@@ -75,6 +82,8 @@ NUM_VALIDATION_IMAGES = count_data_items(VALIDATION_FILENAMES)
 VALIDATION_STEPS = NUM_VALIDATION_IMAGES//CFG.BATCH_SIZE
 NUM_TEST_IMAGES = count_data_items(TESTING_FILENAMES)
 print('Dataset: {} unlabeled test images'.format(NUM_TEST_IMAGES))
+print('Dataset: {} labeled train images'.format(NUM_TRAINING_IMAGES))
+print('Dataset: {} labeled validation images'.format(NUM_VALIDATION_IMAGES))
 
 def decode_image(image_data):
     image = tf.image.decode_jpeg(image_data, channels=3)  # image format uint8 [0,255]
