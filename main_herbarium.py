@@ -175,6 +175,7 @@ def get_training_dataset():
     dataset = dataset.map(onehot, num_parallel_calls=AUTO)
     dataset = dataset.map(data_augment, num_parallel_calls=AUTO)
     dataset = dataset.repeat() # the training dataset must repeat for several epochs
+    dataset = dataset.cache()
     dataset = dataset.shuffle(2048)
     dataset = dataset.batch(CFG.BATCH_SIZE)
     dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
@@ -407,6 +408,11 @@ def main(unused_argv):
                 print('Creating model')
                 model = get_model(arch,weights)
                 model.summary()
+                tb_callback = tf.keras.callbacks.TensorBoard(
+                        log_dir=MAIN_CKP_DIR+'logs_%s_%s_best_%d'%(arch,weights,CFG.IMAGE_SIZE[0]), histogram_freq=0, write_graph=True,
+                        write_images=False, write_steps_per_second=False, update_freq='epoch',
+                        profile_batch=2, embeddings_freq=0, embeddings_metadata=None
+                            )
                 lr_callback = tf.keras.callbacks.ReduceLROnPlateau(patience=2, min_delta=0.001,
                                                           monitor='val_loss', mode='min')
                 es_callback = tf.keras.callbacks.EarlyStopping(patience=5, min_delta=0.001, 
@@ -432,7 +438,7 @@ def main(unused_argv):
                             steps_per_epoch=STEPS_PER_EPOCH,
                             epochs=CFG.EPOCHS,
                             validation_data=get_validation_dataset(),
-                            callbacks=[lr_callback, chk_callback, es_callback],
+                            callbacks=[lr_callback, chk_callback, es_callback,tb_callback],
                             verbose=1)
                 df= pd.DataFrame(history.history)
                 
