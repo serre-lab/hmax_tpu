@@ -40,7 +40,7 @@ FLAGS = flags.FLAGS
 class CFG:
     N_CLASSES = 64500
     IMAGE_SIZE = [600, 600]
-    EPOCHS = 20
+    EPOCHS = 1
     if IMAGE_SIZE[0] == 256:
         BATCH_SIZE = 64 * 8#strategy.num_replicas_in_sync
     elif IMAGE_SIZE[0] == 384:
@@ -111,22 +111,38 @@ def data_augment_triplet(image, label,label2):
     return (image, label),label2
 
 def read_unlabeled_tfrecord(example):
-    UNLABELED_TFREC_FORMAT = {
+
+    if CFG.IMAGE_SIZE[0]==256:
+        UNLABELED_TFREC_FORMAT = {
         'image': tf.io.FixedLenFeature([], tf.string),
         'image_idx': tf.io.FixedLenFeature([], tf.string)
-    }
+        }
+    else: 
+        UNLABELED_TFREC_FORMAT = {
+        'image': tf.io.FixedLenFeature([], tf.string),
+        'image_idx': tf.io.FixedLenFeature([], tf.int64)
+        }
+
 
     example = tf.io.parse_single_example(example, UNLABELED_TFREC_FORMAT)
     image = decode_image(example['image'])
-    idnum=example['image_idx']
+    idnum = example['image_idx']
     return image, idnum
 
 def read_labeled_tfrecord(example):
-    LABELED_TFREC_FORMAT = {
+
+    if CFG.IMAGE_SIZE[0]==256:
+        LABELED_TFREC_FORMAT = {
         'image': tf.io.FixedLenFeature([], tf.string),
         'image_idx': tf.io.FixedLenFeature([], tf.string),
         'label': tf.io.FixedLenFeature([], tf.int64),
-    }
+        }
+    else: 
+        LABELED_TFREC_FORMAT = {
+        'image': tf.io.FixedLenFeature([], tf.string),
+        'image_idx': tf.io.FixedLenFeature([], tf.int64),
+        'label': tf.io.FixedLenFeature([], tf.int64),
+        }
 
     example = tf.io.parse_single_example(example, LABELED_TFREC_FORMAT)
     image = decode_image(example['image'])
