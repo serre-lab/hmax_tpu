@@ -5,7 +5,7 @@ from __future__ import print_function
 
 import os
 import time
-
+import glob 
 from absl import app
 from absl import flags
 from absl import logging
@@ -71,6 +71,14 @@ elif CFG.IMAGE_SIZE[0]==600:
     TRAINING_FILENAMES = [f  for f in TRAINING_FILENAMES]
     VALIDATION_FILENAMES = TRAINING_FILENAMES[int(len(TRAINING_FILENAMES)*0.9):] #tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train/*.tfrec')
     TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/test_2/*.tfrec')
+elif CFG.IMAGE_SIZE[0]==2000:
+    tf.config.experimental.set_lms_enabled(True)
+    TRAINING_FILENAMES =  glob.glob('/cifs/data/tserre_lrs/projects/prj_fossils/data/raw_data/Herbarium_2021_FGVC8/tfrecords/train_3')#tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train_2/*.tfrec')
+    random.shuffle(TRAINING_FILENAMES)
+    TRAINING_FILENAMES = TRAINING_FILENAMES[:int(len(TRAINING_FILENAMES)*0.9)]
+    TRAINING_FILENAMES = [f  for f in TRAINING_FILENAMES]
+    VALIDATION_FILENAMES = TRAINING_FILENAMES[int(len(TRAINING_FILENAMES)*0.9):] #tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train/*.tfrec')
+    TESTING_FILENAMES = glob.glob('/cifs/data/tserre_lrs/projects/prj_fossils/data/raw_data/Herbarium_2021_FGVC8/tfrecords/test_3')#tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/test_2/*.tfrec')
 else:
     print('NOT implemented')
     pass 
