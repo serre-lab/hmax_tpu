@@ -412,9 +412,13 @@ def main(unused_argv):
     #tf.tpu.experimental.initialize_tpu_system(tpu)
     #strategy = tf.distribute.experimental.TPUStrategy(tpu)
     #strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
-    cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='local')
-    tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
-    strategy = tf.distribute.TPUStrategy(cluster_resolver)
+    try: 
+        cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='local')
+        tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
+        strategy = tf.distribute.TPUStrategy(cluster_resolver)
+    except ValueError: # detect GPUs
+        print('training on GPU')
+        strategy = tf.distribute.MirroredStrategy()
     print("Number of accelerators: ", strategy.num_replicas_in_sync)
     
     with strategy.scope():
