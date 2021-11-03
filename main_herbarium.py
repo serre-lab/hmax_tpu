@@ -406,9 +406,9 @@ def main(unused_argv):
     
     params.validate()
     params.lock()
-    #print(FLAGS.gcp_project)
-    #print(FLAGS.tpu_zone)
-    #print(FLAGS.tpu)
+    print(FLAGS.gcp_project)
+    print(FLAGS.tpu_zone)
+    print(FLAGS.tpu)
     
     #cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
     #  FLAGS.tpu if (FLAGS.tpu or params.use_tpu) else '',
@@ -508,6 +508,5 @@ def main(unused_argv):
             
 if __name__ == '__main__':
   #tf.logging.set_verbosity(tf.logging.INFO)
-  main()
-  #app.run(main)
+  app.run(main)
   #app.run(main_triplet)
