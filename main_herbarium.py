@@ -73,6 +73,13 @@ elif CFG.IMAGE_SIZE[0]==600:
     TRAINING_FILENAMES = [f  for f in TRAINING_FILENAMES]
     VALIDATION_FILENAMES = TRAINING_FILENAMES[int(len(TRAINING_FILENAMES)*0.9):] #tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train/*.tfrec')
     TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/test_2/*.tfrec')
+elif CFG.IMAGE_SIZE[0]==1600:
+    TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/1600/train_4/*.tfrec')
+    random.shuffle(TRAINING_FILENAMES)
+    TRAINING_FILENAMES = [f  for f in TRAINING_FILENAMES]
+    TRAINING_FILENAMES = TRAINING_FILENAMES[:int(len(TRAINING_FILENAMES)*0.9)]
+    VALIDATION_FILENAMES = TRAINING_FILENAMES[int(len(TRAINING_FILENAMES)*0.9):] #tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train/*.tfrec')
+    TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/1600/test_4/*.tfrec')
 elif CFG.IMAGE_SIZE[0]==2000:
     tf.config.experimental.set_lms_enabled(True)
     TRAINING_FILENAMES =  glob.glob('/cifs/data/tserre_lrs/projects/prj_fossils/data/raw_data/Herbarium_2021_FGVC8/tfrecords/train_3/*.tfrec')#tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train_2/*.tfrec')
@@ -405,31 +412,22 @@ def main():
     #params = flags_to_params.override_params_from_input_flags(params, FLAGS)
     # Save params for transfer to GCS
     #np.savez( os.path.join(MAIN_CKP_DIR,'params.npz'), **params.as_dict())
+    if CFG.SIZE != 2000:
+        params.validate()
+        params.lock()
+        print(FLAGS.gcp_project)
+        print(FLAGS.tpu_zone)
+        print(FLAGS.tpu)
     
-    #params.validate()
-    #params.lock()
-    #print(FLAGS.gcp_project)
-    #print(FLAGS.tpu_zone)
-    #print(FLAGS.tpu)
-    
-    #cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
-    #  FLAGS.tpu if (FLAGS.tpu or params.use_tpu) else '',
-    #  zone=FLAGS.tpu_zone,
-    #  project=FLAGS.gcp_project)
-    #tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
-    #tpu = tf.distribute.cluster_resolver.TPUClusterResolver() # TPU detection
-    #tf.config.experimental_connect_to_cluster(tpu)
-    #tf.tpu.experimental.initialize_tpu_system(tpu)
-    #strategy = tf.distribute.experimental.TPUStrategy(tpu)
-    #strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
-    #try: 
-    #    cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='local')
-    #    tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
-    #    strategy = tf.distribute.TPUStrategy(cluster_resolver)
-    #except ValueError: # detect GPUs
-    print('training on GPU')
-    strategy = tf.distribute.MirroredStrategy()
-    print("Number of accelerators: ", strategy.num_replicas_in_sync)
+ 
+    try: 
+        cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='local')
+        tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
+        strategy = tf.distribute.TPUStrategy(cluster_resolver)
+    except ValueError: # detect GPUs
+        print('training on GPU')
+        strategy = tf.distribute.MirroredStrategy()
+        print("Number of accelerators: ", strategy.num_replicas_in_sync)
     
     with strategy.scope():
         # NasNET
@@ -510,6 +508,5 @@ def main():
             
 if __name__ == '__main__':
   #tf.logging.set_verbosity(tf.logging.INFO)
-  main()
-  #app.run(main)
+  app.run(main)
   #app.run(main_triplet)
