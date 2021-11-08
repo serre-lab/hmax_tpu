@@ -412,12 +412,12 @@ def main():
     #params = flags_to_params.override_params_from_input_flags(params, FLAGS)
     # Save params for transfer to GCS
     #np.savez( os.path.join(MAIN_CKP_DIR,'params.npz'), **params.as_dict())
-    if CFG.SIZE != 2000:
-        params.validate()
-        params.lock()
-        print(FLAGS.gcp_project)
-        print(FLAGS.tpu_zone)
-        print(FLAGS.tpu)
+    #if CFG.SIZE != 2000:
+        #params.validate()
+        #params.lock()
+        #print(FLAGS.gcp_project)
+        #print(FLAGS.tpu_zone)
+        #print(FLAGS.tpu)
     
  
     try: 
@@ -427,7 +427,10 @@ def main():
     except ValueError: # detect GPUs
         print('training on GPU')
         strategy = tf.distribute.MirroredStrategy()
-        print("Number of accelerators: ", strategy.num_replicas_in_sync)
+    
+    
+    
+    print("Number of accelerators: ", strategy.num_replicas_in_sync)
     
     with strategy.scope():
         # NasNET
@@ -508,5 +511,5 @@ def main():
             
 if __name__ == '__main__':
   #tf.logging.set_verbosity(tf.logging.INFO)
-  app.run(main)
+  main()
   #app.run(main_triplet)
