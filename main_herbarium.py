@@ -33,13 +33,13 @@ def count_data_items(filenames):
     n = [int(re.compile(r"-([0-9]*)\.").search(filename).group(1)) for filename in filenames]
     return np.sum(n)
 
-common_tpu_flags.define_common_tpu_flags()
-common_hparams_flags.define_common_hparams_flags()
-FLAGS = flags.FLAGS
+#common_tpu_flags.define_common_tpu_flags()
+#common_hparams_flags.define_common_hparams_flags()
+#FLAGS = flags.FLAGS
 #import efficientnet.tfkeras as efn
 class CFG:
     N_CLASSES = 64500
-    IMAGE_SIZE = [600, 600]
+    IMAGE_SIZE = [2000, 2000]
     EPOCHS = 1
     if IMAGE_SIZE[0] == 256:
         BATCH_SIZE = 64 * 8#strategy.num_replicas_in_sync
@@ -47,9 +47,11 @@ class CFG:
         BATCH_SIZE = 32 * 8#strategy.num_replicas_in_sync
     elif IMAGE_SIZE[0] == 600:
         BATCH_SIZE = 16 * 8#strategy.num_replicas_in_sync
+    elif IMAGE_SIZE[0] == 2000:
+        BATCH_SIZE = 4 * 1#strategy.num_replicas_in_sync
     else:
         BATCH_SIZE = 16 * 8
-
+print(CFG.IMAGE_SIZE)
 flags.DEFINE_string(
     'export_dir',
     default=None,
@@ -73,17 +75,17 @@ elif CFG.IMAGE_SIZE[0]==600:
     TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/test_2/*.tfrec')
 elif CFG.IMAGE_SIZE[0]==2000:
     tf.config.experimental.set_lms_enabled(True)
-    TRAINING_FILENAMES =  glob.glob('/cifs/data/tserre_lrs/projects/prj_fossils/data/raw_data/Herbarium_2021_FGVC8/tfrecords/train_3')#tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train_2/*.tfrec')
+    TRAINING_FILENAMES =  glob.glob('/cifs/data/tserre_lrs/projects/prj_fossils/data/raw_data/Herbarium_2021_FGVC8/tfrecords/train_3/*.tfrec')#tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train_2/*.tfrec')
     random.shuffle(TRAINING_FILENAMES)
-    TRAINING_FILENAMES = TRAINING_FILENAMES[:int(len(TRAINING_FILENAMES)*0.9)]
     TRAINING_FILENAMES = [f  for f in TRAINING_FILENAMES]
+    TRAINING_FILENAMES = TRAINING_FILENAMES[:int(len(TRAINING_FILENAMES)*0.9)]
     VALIDATION_FILENAMES = TRAINING_FILENAMES[int(len(TRAINING_FILENAMES)*0.9):] #tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train/*.tfrec')
-    TESTING_FILENAMES = glob.glob('/cifs/data/tserre_lrs/projects/prj_fossils/data/raw_data/Herbarium_2021_FGVC8/tfrecords/test_3')#tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/test_2/*.tfrec')
+    TESTING_FILENAMES = glob.glob('/cifs/data/tserre_lrs/projects/prj_fossils/data/raw_data/Herbarium_2021_FGVC8/tfrecords/test_3/*.tfrec')#tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/test_2/*.tfrec')
 else:
     print('NOT implemented')
     pass 
 NUM_TRAINING_IMAGES = count_data_items(TRAINING_FILENAMES)
-STEPS_PER_EPOCH = NUM_TRAINING_IMAGES//CFG.BATCH_SIZE
+STEPS_PER_EPOCH = NUM_TRAINING_IMAGES//4//CFG.BATCH_SIZE
 NUM_TESTING_IMAGES = count_data_items(TESTING_FILENAMES)
 TEST_STEPS = NUM_TESTING_IMAGES#//CFG.BATCH_SIZE
 NUM_VALIDATION_IMAGES = count_data_items(VALIDATION_FILENAMES)
@@ -160,7 +162,7 @@ def read_labeled_tfrecord(example):
 def read_labeled_tfrecord_triplet(example):
     LABELED_TFREC_FORMAT = {
         'image': tf.io.FixedLenFeature([], tf.string),
-        'image_idx': tf.io.FixedLenFeature([], tf.string),
+        'image_idx': tf.io.FixedLenFeature([], tf.int64),
         'label': tf.io.FixedLenFeature([], tf.int64),
     }
 
@@ -199,7 +201,7 @@ def get_training_dataset():
     dataset = dataset.map(onehot, num_parallel_calls=AUTO)
     dataset = dataset.map(data_augment, num_parallel_calls=AUTO)
     dataset = dataset.repeat() # the training dataset must repeat for several epochs
-    dataset = dataset.cache()
+    #dataset = dataset.cache()
     dataset = dataset.shuffle(2048)
     dataset = dataset.batch(CFG.BATCH_SIZE)
     dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
@@ -390,22 +392,22 @@ def main_triplet(unused_argv):
 
 
 
-def main(unused_argv):
+def main():
     MAIN_CKP_DIR = 'ckpt/'
     os.makedirs(MAIN_CKP_DIR,exist_ok=True)
-    params = params_dict.ParamsDict(
-      resnet_config.RESNET_CFG, resnet_config.RESNET_RESTRICTIONS)
-    params = params_dict.override_params_dict(
-      params, FLAGS.config_file, is_strict=True)
-    params = params_dict.override_params_dict(
-          params, FLAGS.params_override, is_strict=True)
+    #params = params_dict.ParamsDict(
+    #  resnet_config.RESNET_CFG, resnet_config.RESNET_RESTRICTIONS)
+    #params = params_dict.override_params_dict(
+    #  params, FLAGS.config_file, is_strict=True)
+    #params = params_dict.override_params_dict(
+    #      params, FLAGS.params_override, is_strict=True)
     
-    params = flags_to_params.override_params_from_input_flags(params, FLAGS)
+    #params = flags_to_params.override_params_from_input_flags(params, FLAGS)
     # Save params for transfer to GCS
-    np.savez( os.path.join(MAIN_CKP_DIR,'params.npz'), **params.as_dict())
+    #np.savez( os.path.join(MAIN_CKP_DIR,'params.npz'), **params.as_dict())
     
-    params.validate()
-    params.lock()
+    #params.validate()
+    #params.lock()
     #print(FLAGS.gcp_project)
     #print(FLAGS.tpu_zone)
     #print(FLAGS.tpu)
@@ -420,13 +422,13 @@ def main(unused_argv):
     #tf.tpu.experimental.initialize_tpu_system(tpu)
     #strategy = tf.distribute.experimental.TPUStrategy(tpu)
     #strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
-    try: 
-        cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='local')
-        tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
-        strategy = tf.distribute.TPUStrategy(cluster_resolver)
-    except ValueError: # detect GPUs
-        print('training on GPU')
-        strategy = tf.distribute.MirroredStrategy()
+    #try: 
+    #    cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='local')
+    #    tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
+    #    strategy = tf.distribute.TPUStrategy(cluster_resolver)
+    #except ValueError: # detect GPUs
+    print('training on GPU')
+    strategy = tf.distribute.MirroredStrategy()
     print("Number of accelerators: ", strategy.num_replicas_in_sync)
     
     with strategy.scope():
@@ -438,7 +440,7 @@ def main(unused_argv):
                 model.summary()
                 tb_callback = tf.keras.callbacks.TensorBoard(
                         log_dir=MAIN_CKP_DIR+'logs_%s_%s_best_%d'%(arch,weights,CFG.IMAGE_SIZE[0]), histogram_freq=0, write_graph=True,
-                        write_images=False, write_steps_per_second=False, update_freq='epoch',
+                        write_images=False,  update_freq='epoch',
                         profile_batch=2, embeddings_freq=0, embeddings_metadata=None
                             )
                 lr_callback = tf.keras.callbacks.ReduceLROnPlateau(patience=2, min_delta=0.001,
