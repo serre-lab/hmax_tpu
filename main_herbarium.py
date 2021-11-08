@@ -73,10 +73,10 @@ elif CFG.IMAGE_SIZE[0]==600:
     TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/test_2/*.tfrec')
 elif CFG.IMAGE_SIZE[0]==2000:
     tf.config.experimental.set_lms_enabled(True)
-    TRAINING_FILENAMES =  glob.glob('/cifs/data/tserre_lrs/projects/prj_fossils/data/raw_data/Herbarium_2021_FGVC8/tfrecords/train_3')#tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train_2/*.tfrec')
+    TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/2000/train_3/*.tfrec')#glob.glob('/cifs/data/tserre_lrs/projects/prj_fossils/data/raw_data/Herbarium_2021_FGVC8/tfrecords/train_3')#tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train_2/*.tfrec')
     random.shuffle(TRAINING_FILENAMES)
-    TRAINING_FILENAMES = TRAINING_FILENAMES[:int(len(TRAINING_FILENAMES)*0.9)]
     TRAINING_FILENAMES = [f  for f in TRAINING_FILENAMES]
+    TRAINING_FILENAMES = TRAINING_FILENAMES[:int(len(TRAINING_FILENAMES)*0.9)]
     VALIDATION_FILENAMES = TRAINING_FILENAMES[int(len(TRAINING_FILENAMES)*0.9):] #tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train/*.tfrec')
     TESTING_FILENAMES = glob.glob('/cifs/data/tserre_lrs/projects/prj_fossils/data/raw_data/Herbarium_2021_FGVC8/tfrecords/test_3')#tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/test_2/*.tfrec')
 else:
@@ -427,6 +427,8 @@ def main(unused_argv):
     except ValueError: # detect GPUs
         print('training on GPU')
         strategy = tf.distribute.MirroredStrategy()
+
+    
     print("Number of accelerators: ", strategy.num_replicas_in_sync)
     
     with strategy.scope():
@@ -493,6 +495,7 @@ def main(unused_argv):
                 
                 for imgs, idx in test_ds:
                     idx = np.array(idx,np.int64)
+                    print(idx)
                     preds = np.argmax(model(imgs),-1)
                     for pred_id,pred in zip(idx,preds):
                         predictions[pred_id]=pred
