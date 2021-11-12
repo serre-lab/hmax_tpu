@@ -391,7 +391,7 @@ def main_triplet(unused_argv):
 
 
 def main(unused_argv):
-    MAIN_CKP_DIR = 'ckpt/'
+    MAIN_CKP_DIR = 'gs://serrelab/prj-fossil/exported/2021-11/12'
     os.makedirs(MAIN_CKP_DIR,exist_ok=True)
     params = params_dict.ParamsDict(
       resnet_config.RESNET_CFG, resnet_config.RESNET_RESTRICTIONS)
@@ -421,9 +421,10 @@ def main(unused_argv):
     #strategy = tf.distribute.experimental.TPUStrategy(tpu)
     #strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
     try: 
-        cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='local')
-        tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
+        cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='my_tpu_vm')
+    
         tf.config.experimental_connect_to_cluster(cluster_resolver)
+        tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
         strategy = tf.distribute.TPUStrategy(cluster_resolver)
     except ValueError: # detect GPUs
         print('training on GPU')
