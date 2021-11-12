@@ -39,14 +39,14 @@ FLAGS = flags.FLAGS
 #import efficientnet.tfkeras as efn
 class CFG:
     N_CLASSES = 64500
-    IMAGE_SIZE = [600, 600]
-    EPOCHS = 1
+    IMAGE_SIZE = [1600, 1600]
+    EPOCHS = 20
     if IMAGE_SIZE[0] == 256:
         BATCH_SIZE = 64 * 8#strategy.num_replicas_in_sync
     elif IMAGE_SIZE[0] == 384:
         BATCH_SIZE = 32 * 8#strategy.num_replicas_in_sync
-    elif IMAGE_SIZE[0] == 600:
-        BATCH_SIZE = 16 * 8#strategy.num_replicas_in_sync
+    elif IMAGE_SIZE[0] == 1600:
+        BATCH_SIZE = 4 * 8#strategy.num_replicas_in_sync
     else:
         BATCH_SIZE = 16 * 8
 
@@ -64,8 +64,8 @@ elif CFG.IMAGE_SIZE[0]==384:
     TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/384/train-384/*.tfrec')
     VALIDATION_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/384/val-384/*.tfrec')
     TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/384/test-384/*.tfrec')
-elif CFG.IMAGE_SIZE[0]==600:
-    TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train_2/*.tfrec')
+elif CFG.IMAGE_SIZE[0]==1600:
+    TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/1600/train_4/*.tfrec')
     random.shuffle(TRAINING_FILENAMES)
     TRAINING_FILENAMES = TRAINING_FILENAMES[:int(len(TRAINING_FILENAMES)*0.9)]
     TRAINING_FILENAMES = [f  for f in TRAINING_FILENAMES]
@@ -199,7 +199,7 @@ def get_training_dataset():
     dataset = dataset.map(onehot, num_parallel_calls=AUTO)
     dataset = dataset.map(data_augment, num_parallel_calls=AUTO)
     dataset = dataset.repeat() # the training dataset must repeat for several epochs
-    dataset = dataset.cache()
+    #dataset = dataset.cache()
     dataset = dataset.shuffle(2048)
     dataset = dataset.batch(CFG.BATCH_SIZE)
     dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
@@ -423,6 +423,7 @@ def main(unused_argv):
     try: 
         cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='local')
         tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
+        tf.config.experimental_connect_to_cluster(cluster_resolver)
         strategy = tf.distribute.TPUStrategy(cluster_resolver)
     except ValueError: # detect GPUs
         print('training on GPU')
