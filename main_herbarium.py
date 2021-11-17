@@ -46,7 +46,7 @@ class CFG:
     elif IMAGE_SIZE[0] == 384:
         BATCH_SIZE = 32 * 8#strategy.num_replicas_in_sync
     elif IMAGE_SIZE[0] == 1600:
-        BATCH_SIZE = 4 * 8#strategy.num_replicas_in_sync
+        BATCH_SIZE = 4 * 128 #strategy.num_replicas_in_sync
     else:
         BATCH_SIZE = 16 * 8
 
@@ -77,7 +77,7 @@ elif CFG.IMAGE_SIZE[0]==2000:
     random.shuffle(TRAINING_FILENAMES)
     TRAINING_FILENAMES = [f  for f in TRAINING_FILENAMES]
     TRAINING_FILENAMES = TRAINING_FILENAMES[:int(len(TRAINING_FILENAMES)*0.9)]
-    VALIDATION_FILENAMES = TRAINING_FILENAMES[int(len(TRAINING_FILENAMES)*0.9):] #tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train/*.tfrec')
+    VALIDATION_FILENAMES = TRAINING_FILENAMES[int(len(TRAINING_FILENAMES)*0.4):] #tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train/*.tfrec')
     TESTING_FILENAMES = glob.glob('/cifs/data/tserre_lrs/projects/prj_fossils/data/raw_data/Herbarium_2021_FGVC8/tfrecords/test_3')#tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/test_2/*.tfrec')
 else:
     print('NOT implemented')
@@ -226,7 +226,7 @@ def get_validation_dataset_triplet(ordered=False):
 def get_validation_dataset(ordered=False):
     dataset = load_dataset(VALIDATION_FILENAMES,ordered=ordered)
     dataset = dataset.map(onehot, num_parallel_calls=AUTO)
-    dataset = dataset.batch(CFG.BATCH_SIZE)
+    dataset = dataset.batch(CFG.BATCH_SIZE).repeat()
     #dataset = dataset.cache()
     dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
     return dataset
