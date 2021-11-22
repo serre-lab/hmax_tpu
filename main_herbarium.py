@@ -46,7 +46,7 @@ class CFG:
     elif IMAGE_SIZE[0] == 384:
         BATCH_SIZE = 32 * 8#strategy.num_replicas_in_sync
     elif IMAGE_SIZE[0] == 1600:
-        BATCH_SIZE = 4 * 128 #strategy.num_replicas_in_sync
+        BATCH_SIZE = 4 * 256 #strategy.num_replicas_in_sync
     else:
         BATCH_SIZE = 16 * 8
 
@@ -68,7 +68,7 @@ elif CFG.IMAGE_SIZE[0]==1600:
     TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/1600/train_4/*.tfrec')
     random.shuffle(TRAINING_FILENAMES)
     TRAINING_FILENAMES = TRAINING_FILENAMES[:int(len(TRAINING_FILENAMES)*0.9)]
-    TRAINING_FILENAMES = [f  for f in TRAINING_FILENAMES]
+    #TRAINING_FILENAMES = [f  for f in TRAINING_FILENAMES]
     VALIDATION_FILENAMES = TRAINING_FILENAMES[int(len(TRAINING_FILENAMES)*0.9):] #tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train/*.tfrec')
     TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/test_2/*.tfrec')
 elif CFG.IMAGE_SIZE[0]==2000:
@@ -226,9 +226,12 @@ def get_validation_dataset_triplet(ordered=False):
 def get_validation_dataset(ordered=False):
     dataset = load_dataset(VALIDATION_FILENAMES,ordered=ordered)
     dataset = dataset.map(onehot, num_parallel_calls=AUTO)
-    dataset = dataset.batch(CFG.BATCH_SIZE).repeat()
+    dataset = dataset.batch(CFG.BATCH_SIZE)
     #dataset = dataset.cache()
     dataset = dataset.prefetch(AUTO) # prefetch next batch while training (autotune prefetch buffer size)
+    options = tf.data.Options()
+    options.experimental_distribute.auto_shard_policy = tf.data.experimental.AutoShardPolicy.OFF
+    dataset = dataset.with_options(options)
     return dataset
 
 def get_test_dataset(ordered=True, augmented=False):
@@ -391,7 +394,7 @@ def main_triplet(unused_argv):
 
 
 def main(unused_argv):
-    MAIN_CKP_DIR = 'gs://serrelab/prj-fossil/exported/2021-11/12'
+    MAIN_CKP_DIR = 'gs://serrelab/prj-fossil/exported/2021-11/21/'
     os.makedirs(MAIN_CKP_DIR,exist_ok=True)
     params = params_dict.ParamsDict(
       resnet_config.RESNET_CFG, resnet_config.RESNET_RESTRICTIONS)
@@ -470,7 +473,7 @@ def main(unused_argv):
                             steps_per_epoch=STEPS_PER_EPOCH,
                             epochs=CFG.EPOCHS,
                             validation_data=get_validation_dataset(),
-                            callbacks=[lr_callback, chk_callback, es_callback,tb_callback],
+                            callbacks=[lr_callback, chk_callback],
                             verbose=1)
                 df= pd.DataFrame(history.history)
                 
