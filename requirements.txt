@@ -3,3 +3,4 @@ tensorflow-addons
 numpy 
 pandas
 tqdm
+image-classifiers
