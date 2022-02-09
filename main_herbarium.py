@@ -27,6 +27,7 @@ from configs import resnet_config
 from losses import batch_hard_triplet_loss
 from models.resnet_model_triplet import get_triplet_model
 import random
+from classification_models.keras import Classifiers
 
 def count_data_items(filenames):
     # the number of data items is written in the name of the .tfrec files, i.e. flowers00-230.tfrec = 230 data items
@@ -269,8 +270,15 @@ def get_model(base_arch='Nasnet',weights='imagenet',include_top=True):
         base_model.add(L.GlobalMaxPooling2D(name="gap"))
         #avoid overfitting
         base_model.add(L.Dropout(dropout_rate=0.2, name="dropout_out"))
+    elif base_arch == 'SEResnext101': 
+        SeResNeXT, preprocess_input = Classifiers.get('seresnext101')
+        model = SeResNeXT(include_top = True, input_shape=(*CFG.IMAGE_SIZE, 3), weights=weights,classes=CFG.N_CLASSES)    
+    elif base_arch == 'Resnext101': 
+        ResNeXT, preprocess_input = Classifiers.get('resnext101')
+        model = ResNeXT(include_top = True, input_shape=(*CFG.IMAGE_SIZE, 3), weights=weights,classes=CFG.N_CLASSES)   
+
                                 
-    if include_top:
+    if include_top and 'Resnext' not in base_arch: 
         model = tf.keras.Sequential([
         base_model,
         L.Dense(CFG.N_CLASSES, activation='softmax')
