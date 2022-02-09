@@ -40,7 +40,7 @@ FLAGS = flags.FLAGS
 #import efficientnet.tfkeras as efn
 class CFG:
     N_CLASSES = 64500
-    IMAGE_SIZE = [1600, 1600]
+    IMAGE_SIZE = [256, 256]
     EPOCHS = 20
     if IMAGE_SIZE[0] == 256:
         BATCH_SIZE = 64 * 8#strategy.num_replicas_in_sync
@@ -65,6 +65,13 @@ elif CFG.IMAGE_SIZE[0]==384:
     TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/384/train-384/*.tfrec')
     VALIDATION_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/384/val-384/*.tfrec')
     TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/384/test-384/*.tfrec')
+elif CFG.IMAGE_SIZE[0]==600:
+    TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train_2/*.tfrec')
+    random.shuffle(TRAINING_FILENAMES)
+    TRAINING_FILENAMES = TRAINING_FILENAMES[:int(len(TRAINING_FILENAMES)*0.9)]
+    TRAINING_FILENAMES = [f  for f in TRAINING_FILENAMES]
+    VALIDATION_FILENAMES = TRAINING_FILENAMES[int(len(TRAINING_FILENAMES)*0.9):] #tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/train/*.tfrec')
+    TESTING_FILENAMES = tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/600/test_2/*.tfrec')
 elif CFG.IMAGE_SIZE[0]==1600:
     TRAINING_FILENAMES =  tf.io.gfile.glob('gs://serrelab/prj-fossil/data/herbarium/1600/train_4/*.tfrec')
     random.shuffle(TRAINING_FILENAMES)
