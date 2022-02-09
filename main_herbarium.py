@@ -439,7 +439,7 @@ def main(unused_argv):
     #strategy = tf.distribute.experimental.TPUStrategy(tpu)
     #strategy = tf.distribute.experimental.TPUStrategy(cluster_resolver)
     try: 
-        cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu=FLAGS.tpu)
+        cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu=FLAGS.tpu,tpu_zone=FLAGS.tpu_zone)
     
         tf.config.experimental_connect_to_cluster(cluster_resolver)
         tf.tpu.experimental.initialize_tpu_system(cluster_resolver)
